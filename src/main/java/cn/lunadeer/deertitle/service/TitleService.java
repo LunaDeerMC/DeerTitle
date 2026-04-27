@@ -56,7 +56,7 @@ public final class TitleService {
 
     public Component currentTitleComponent(UUID playerId) throws Exception {
         Optional<TitleRecord> title = currentTitle(playerId);
-        return title.map(value -> textFormatter.deserialize(value.title())).orElse(Component.empty());
+        return title.map(value -> decorateTitle(textFormatter.deserialize(value.title()))).orElse(Component.empty());
     }
 
     public List<OwnedTitleView> ownedTitles(UUID playerId) throws Exception {
@@ -168,6 +168,23 @@ public final class TitleService {
         player.playerListName(Component.empty()
                 .append(prefix)
                 .append(Component.text(player.getName())));
+    }
+
+    private Component decorateTitle(Component title) {
+        if (title.equals(Component.empty())) {
+            return Component.empty();
+        }
+        String titlePrefix = plugin.getConfigService().config().display.titlePrefix;
+        String titleSuffix = plugin.getConfigService().config().display.titleSuffix;
+        Component decorated = Component.empty();
+        if (titlePrefix != null && !titlePrefix.isEmpty()) {
+            decorated = decorated.append(textFormatter.deserialize(titlePrefix));
+        }
+        decorated = decorated.append(title);
+        if (titleSuffix != null && !titleSuffix.isEmpty()) {
+            decorated = decorated.append(textFormatter.deserialize(titleSuffix));
+        }
+        return decorated;
     }
 
     public ExpiryCleanupResult pruneExpiredTitles() throws Exception {

@@ -68,6 +68,7 @@ build/libs/DeerTitle-<version>.jar
   - `sqliteFile`：SQLite 文件路径，默认 `database/deertitle.db`
   - `host`、`port`、`database`、`username`、`password`：MariaDB 连接信息
 - `display`
+  - `titlePrefix`、`titleSuffix`：称号本体前后缀，默认显示为方括号样式
   - `titleSeparator`：称号与玩家名之间的分隔符
   - `currentTitlePlaceholder`、`previewPlaceholder`：显示相关占位符配置
   - `fallbackChatPrefix`、`fallbackTabPrefix`：已预留在配置中，便于后续扩展显示策略

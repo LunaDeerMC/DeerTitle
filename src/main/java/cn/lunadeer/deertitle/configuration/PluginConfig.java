@@ -48,6 +48,8 @@ public final class PluginConfig extends ConfigurationFile {
     public static final class Display extends cn.lunadeer.deertitle.utils.configuration.ConfigurationPart {
         public boolean fallbackChatPrefix = true;
         public boolean fallbackTabPrefix = true;
+        public String titlePrefix = "&8[&r";
+        public String titleSuffix = "&8]&r";
         public String titleSeparator = " ";
         public String currentTitlePlaceholder = "%deertitle_current%";
         public String previewPlaceholder = "%deertitle_preview%";
