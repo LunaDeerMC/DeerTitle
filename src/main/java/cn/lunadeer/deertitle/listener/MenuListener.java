@@ -24,6 +24,9 @@ public final class MenuListener implements Listener {
         try {
             menu.handleClick(event);
         } catch (Exception exception) {
+            if (event.getWhoClicked() instanceof org.bukkit.entity.Player player) {
+                plugin.getInteractionFeedbackService().onFailure(player, plugin.getConfigService().language().general.internalError);
+            }
             plugin.getLogger().warning("Failed to handle menu click: " + exception.getMessage());
         }
     }

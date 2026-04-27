@@ -29,19 +29,32 @@ public final class ShopMenu extends Menu {
             String amount = entry.offer().amount() < 0 ? plugin.getConfigService().language().shop.unlimited : Integer.toString(entry.offer().amount());
             String days = entry.offer().days() < 0 ? plugin.getConfigService().language().shop.unlimited : Integer.toString(entry.offer().days());
             String saleEnd = entry.offer().saleEndAt().isPermanent() ? plugin.getConfigService().language().shop.unlimited : entry.offer().saleEndAt().asLocalDate().toString();
+            String actionLore = entry.active()
+                    ? (entry.offer().amount() == 0 ? plugin.getConfigService().language().ui.shopSoldOutLore : plugin.getConfigService().language().ui.shopBuyLore)
+                    : plugin.getConfigService().language().ui.shopExpiredLore;
             setButton(slot, item(Material.EMERALD, entry.title().title(), List.of(
                     entry.title().description().isBlank() ? plugin.getConfigService().language().ui.noDescription : entry.title().description(),
                     plugin.getConfigService().language().ui.labelPrice.replace("{0}", plugin.getEconomyService().format(entry.offer().price())),
                     plugin.getConfigService().language().ui.labelStock.replace("{0}", amount),
                     plugin.getConfigService().language().ui.labelDays.replace("{0}", days),
                     plugin.getConfigService().language().ui.labelSaleEnd.replace("{0}", saleEnd),
-                    entry.active() ? plugin.getConfigService().language().ui.shopBuyLore : plugin.getConfigService().language().ui.shopExpiredLore
+                    actionLore
             )), event -> {
                 try {
-                    if (entry.active()) {
+                    if (!entry.active()) {
+                        plugin.getInteractionFeedbackService().onFailure(viewer, plugin.getConfigService().language().shop.saleExpired);
+                    } else {
                         plugin.getShopService().purchase(viewer, entry.offer().id());
+                        plugin.getInteractionFeedbackService().onPurchaseSuccess(viewer, entry.title().title());
                     }
                     redraw();
+                } catch (ShopService.PurchaseFailedException exception) {
+                    plugin.getInteractionFeedbackService().onPurchaseFailure(viewer, exception.reason());
+                    try {
+                        redraw();
+                    } catch (Exception redrawException) {
+                        throw new RuntimeException(redrawException);
+                    }
                 } catch (Exception exception) {
                     throw new RuntimeException(exception);
                 }

@@ -31,6 +31,7 @@ public final class MainMenu extends Menu {
         )), event -> {
             try {
                 plugin.getTitleService().unequipTitle(viewer);
+                plugin.getInteractionFeedbackService().onTitleRemoved(viewer);
                 redraw();
             } catch (Exception exception) {
                 throw new RuntimeException(exception);

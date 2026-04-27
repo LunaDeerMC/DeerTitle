@@ -66,20 +66,20 @@ public final class ShopService {
 
     public PurchaseResult purchase(Player player, int offerId) throws Exception {
         TitleShopRecord offer = repositories.titleShop().findById(offerId)
-                .orElseThrow(() -> new IllegalArgumentException("Shop offer not found: " + offerId));
+                .orElseThrow(() -> new PurchaseFailedException(PurchaseFailureReason.UNAVAILABLE));
         TitleRecord title = repositories.titles().findById(offer.titleId())
-                .orElseThrow(() -> new IllegalArgumentException("Title not found: " + offer.titleId()));
+                .orElseThrow(() -> new PurchaseFailedException(PurchaseFailureReason.UNAVAILABLE));
         if (!title.enabled()) {
-            throw new IllegalStateException("Title is disabled: " + title.id());
+            throw new PurchaseFailedException(PurchaseFailureReason.UNAVAILABLE);
         }
         if (!isSaleActive(offer, LocalDate.now())) {
-            throw new IllegalStateException("Sale has expired: " + offer.id());
+            throw new PurchaseFailedException(PurchaseFailureReason.EXPIRED);
         }
         if (offer.amount() == 0) {
-            throw new IllegalStateException("Sale is out of stock: " + offer.id());
+            throw new PurchaseFailedException(PurchaseFailureReason.OUT_OF_STOCK);
         }
         if (!economyService.withdraw(player, offer.price())) {
-            throw new IllegalStateException("Insufficient balance");
+            throw new PurchaseFailedException(PurchaseFailureReason.INSUFFICIENT_FUNDS);
         }
         TitleService.TitleGrantResult grant = titleService.grantTitle(player.getUniqueId(), player.getName(), title.id(), offer.days() < 0 ? null : offer.days());
         if (offer.amount() > 0) {
@@ -100,5 +100,26 @@ public final class ShopService {
     }
 
     public record PurchaseResult(TitleShopRecord offer, TitleRecord title, TitleService.TitleGrantResult grant) {
+    }
+
+    public enum PurchaseFailureReason {
+        UNAVAILABLE,
+        EXPIRED,
+        OUT_OF_STOCK,
+        INSUFFICIENT_FUNDS
+    }
+
+    public static final class PurchaseFailedException extends Exception {
+
+        private final PurchaseFailureReason reason;
+
+        public PurchaseFailedException(PurchaseFailureReason reason) {
+            super(reason.name());
+            this.reason = reason;
+        }
+
+        public PurchaseFailureReason reason() {
+            return reason;
+        }
     }
 }

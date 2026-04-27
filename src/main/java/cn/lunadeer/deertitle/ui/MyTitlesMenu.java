@@ -36,6 +36,9 @@ public final class MyTitlesMenu extends Menu {
                 try {
                     if (view.active()) {
                         plugin.getTitleService().equipTitle(viewer, view.title().id());
+                        plugin.getInteractionFeedbackService().onTitleEquipped(viewer, view.title().title());
+                    } else {
+                        plugin.getInteractionFeedbackService().onFailure(viewer, plugin.getConfigService().language().title.expired, view.title().title());
                     }
                     redraw();
                 } catch (Exception exception) {

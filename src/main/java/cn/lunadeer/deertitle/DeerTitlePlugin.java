@@ -10,6 +10,7 @@ import cn.lunadeer.deertitle.economy.EconomyService;
 import cn.lunadeer.deertitle.listener.TitleCardListener;
 import cn.lunadeer.deertitle.listener.MenuListener;
 import cn.lunadeer.deertitle.placeholder.DeerTitlePlaceholderExpansion;
+import cn.lunadeer.deertitle.service.InteractionFeedbackService;
 import cn.lunadeer.deertitle.service.ShopService;
 import cn.lunadeer.deertitle.service.TitleCardService;
 import cn.lunadeer.deertitle.service.TitleService;
@@ -27,6 +28,7 @@ public final class DeerTitlePlugin extends JavaPlugin {
     private EconomyService economyService;
     private ShopService shopService;
     private TitleCardService titleCardService;
+    private InteractionFeedbackService interactionFeedbackService;
     private DeerTitlePlaceholderExpansion placeholderExpansion;
 
     @Override
@@ -74,6 +76,7 @@ public final class DeerTitlePlugin extends JavaPlugin {
         databaseManager.start();
         new MigrationRunner(this, databaseManager).migrate();
         repositories = new RepositoryRegistry(databaseManager);
+        interactionFeedbackService = new InteractionFeedbackService(this);
         titleService = new TitleService(this, repositories, textFormatter);
         economyService = new EconomyService(this, repositories);
         shopService = new ShopService(this, repositories, titleService, economyService);
@@ -181,6 +184,10 @@ public final class DeerTitlePlugin extends JavaPlugin {
 
     public TitleCardService getTitleCardService() {
         return titleCardService;
+    }
+
+    public InteractionFeedbackService getInteractionFeedbackService() {
+        return interactionFeedbackService;
     }
 
     public boolean isFolia() {

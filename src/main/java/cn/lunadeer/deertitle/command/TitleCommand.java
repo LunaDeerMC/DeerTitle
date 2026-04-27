@@ -63,13 +63,13 @@ public final class TitleCommand implements TabExecutor {
                     Player player = requirePlayer(sender);
                     int titleId = parseInt(args, 1);
                     var title = plugin.getTitleService().equipTitle(player, titleId);
-                    send(sender, plugin.getConfigService().language().title.equipped, title.title());
+                    plugin.getInteractionFeedbackService().onTitleEquipped(player, title.title());
                     return true;
                 }
                 case "remove" -> {
                     Player player = requirePlayer(sender);
                     plugin.getTitleService().unequipTitle(player);
-                    send(sender, plugin.getConfigService().language().title.removed);
+                    plugin.getInteractionFeedbackService().onTitleRemoved(player);
                     return true;
                 }
                 case "current" -> {
@@ -109,8 +109,12 @@ public final class TitleCommand implements TabExecutor {
                 case "buy" -> {
                     Player player = requirePlayer(sender);
                     int offerId = parseInt(args, 1);
-                    ShopService.PurchaseResult result = plugin.getShopService().purchase(player, offerId);
-                    send(sender, plugin.getConfigService().language().shop.purchased, result.title().title());
+                    try {
+                        ShopService.PurchaseResult result = plugin.getShopService().purchase(player, offerId);
+                        plugin.getInteractionFeedbackService().onPurchaseSuccess(player, result.title().title());
+                    } catch (ShopService.PurchaseFailedException exception) {
+                        plugin.getInteractionFeedbackService().onPurchaseFailure(player, exception.reason());
+                    }
                     return true;
                 }
                 case "reload" -> {

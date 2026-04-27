@@ -71,7 +71,7 @@ public final class TitleCardService {
         }
         TitleService.TitleGrantResult grant = titleService.grantTitle(player.getUniqueId(), player.getName(), titleId, days == null || days < 0 ? null : days);
         titleService.equipTitle(player, titleId);
-        player.sendMessage(textFormatter.deserializeTemplate(plugin.getConfigService().language().card.cardUsed, grant.title().title()));
+        boolean consumed = plugin.getConfigService().config().card.consumeOnUse;
         if (plugin.getConfigService().config().card.consumeOnUse) {
             int amount = itemStack.getAmount();
             if (amount <= 1) {
@@ -79,8 +79,8 @@ public final class TitleCardService {
             } else {
                 itemStack.setAmount(amount - 1);
             }
-            player.sendMessage(textFormatter.deserialize(plugin.getConfigService().language().card.cardConsumed));
         }
+        plugin.getInteractionFeedbackService().onTitleCardUsed(player, grant.title().title(), consumed);
         return true;
     }
 

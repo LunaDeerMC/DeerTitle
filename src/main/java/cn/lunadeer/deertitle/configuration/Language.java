@@ -101,6 +101,7 @@ public final class Language extends ConfigurationFile {
         public String insufficientFunds = "<red>You do not have enough money.</red>";
         public String outOfStock = "<red>This title is sold out.</red>";
         public String saleExpired = "<red>This offer has expired.</red>";
+        public String unavailable = "<red>This offer is no longer available.</red>";
         public String free = "<green>Free</green>";
         public String unlimited = "<green>Unlimited</green>";
         public String shopHeader = "<gold>Title Shop:</gold>";
@@ -150,6 +151,7 @@ public final class Language extends ConfigurationFile {
         public String myTitlesActiveLore = "<green>Click to equip this title.</green>";
         public String myTitlesExpiredLore = "<red>This title has expired.</red>";
         public String shopBuyLore = "<green>Click to buy this offer.</green>";
+        public String shopSoldOutLore = "<red>This offer is sold out.</red>";
         public String shopExpiredLore = "<red>This offer is no longer active.</red>";
         public String noDescription = "<gray>No description</gray>";
         public String labelId = "<gray>ID:</gray> <white>{0}</white>";

@@ -19,6 +19,7 @@ public final class PluginConfig extends ConfigurationFile {
     public Economy economy = new Economy();
     public Shop shop = new Shop();
     public Card card = new Card();
+    public Feedback feedback = new Feedback();
     public Ui ui = new Ui();
     public Tasks tasks = new Tasks();
 
@@ -71,6 +72,17 @@ public final class PluginConfig extends ConfigurationFile {
         public String material = "NAME_TAG";
         public boolean consumeOnUse = true;
         public boolean requireSneakToUse = false;
+    }
+
+    public static final class Feedback extends cn.lunadeer.deertitle.utils.configuration.ConfigurationPart {
+        public boolean enableSounds = true;
+        public String equipSuccessSound = "ITEM_ARMOR_EQUIP_CHAIN";
+        public String removeSuccessSound = "ITEM_ARMOR_EQUIP_LEATHER";
+        public String purchaseSuccessSound = "ENTITY_EXPERIENCE_ORB_PICKUP";
+        public String cardUseSuccessSound = "ITEM_BOOK_PAGE_TURN";
+        public String failureSound = "ENTITY_VILLAGER_NO";
+        public float soundVolume = 1.0F;
+        public float soundPitch = 1.0F;
     }
 
     public static final class Ui extends cn.lunadeer.deertitle.utils.configuration.ConfigurationPart {
