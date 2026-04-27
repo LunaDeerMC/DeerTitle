@@ -1,0 +1,32 @@
+.gradle/
+build/
+out/
+bin/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.classpath
+.project
+.settings/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Java crash logs
+hs_err_pid*
+replay_pid*
+
+# Local test server artifacts
+logs/
+run/
+server/
+test-server/
+plugins/
+world/
+world_nether/
+world_the_end/

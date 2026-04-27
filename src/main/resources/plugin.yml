@@ -1,0 +1,21 @@
+name: DeerTitle
+version: '${version}'
+main: cn.lunadeer.deertitle.DeerTitlePlugin
+api-version: '1.20'
+folia-supported: true
+author: LunaDeer
+description: Folia-ready title plugin with shop, cards, placeholders, and GUI support.
+libraries:
+${libraries}
+softdepend:
+  - PlaceholderAPI
+  - Vault
+commands:
+  deertitle:
+    description: DeerTitle main command
+    aliases: [dt, title]
+    usage: /<command>
+permissions:
+  deertitle.admin:
+    description: Grants access to DeerTitle administration features
+    default: op
