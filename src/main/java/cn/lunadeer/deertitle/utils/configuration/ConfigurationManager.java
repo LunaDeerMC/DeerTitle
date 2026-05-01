@@ -144,10 +144,75 @@ public final class ConfigurationManager {
             } else if (missingKey) {
                 yaml.set(key, field.get(obj));
             } else {
-                field.set(obj, yaml.get(key));
+                field.set(obj, coerceValue(field, yaml.get(key)));
             }
         }
         return obj;
+    }
+
+    private static Object coerceValue(Field field, Object value) {
+        if (value == null) {
+            return null;
+        }
+
+        Class<?> fieldType = wrapPrimitive(field.getType());
+        if (fieldType.isInstance(value)) {
+            return value;
+        }
+
+        if (value instanceof Number number) {
+            if (fieldType == Byte.class) {
+                return number.byteValue();
+            }
+            if (fieldType == Short.class) {
+                return number.shortValue();
+            }
+            if (fieldType == Integer.class) {
+                return number.intValue();
+            }
+            if (fieldType == Long.class) {
+                return number.longValue();
+            }
+            if (fieldType == Float.class) {
+                return number.floatValue();
+            }
+            if (fieldType == Double.class) {
+                return number.doubleValue();
+            }
+        }
+
+        return value;
+    }
+
+    private static Class<?> wrapPrimitive(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return type;
+        }
+        if (type == boolean.class) {
+            return Boolean.class;
+        }
+        if (type == byte.class) {
+            return Byte.class;
+        }
+        if (type == short.class) {
+            return Short.class;
+        }
+        if (type == int.class) {
+            return Integer.class;
+        }
+        if (type == long.class) {
+            return Long.class;
+        }
+        if (type == float.class) {
+            return Float.class;
+        }
+        if (type == double.class) {
+            return Double.class;
+        }
+        if (type == char.class) {
+            return Character.class;
+        }
+        return type;
     }
 
     private static String camelToKebab(String camel) {

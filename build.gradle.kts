@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "cn.lunadeer"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.1-SNAPSHOT"
 
 val runtimeLibraries = listOf(
     "com.zaxxer:HikariCP:6.2.1",
