@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: README 文档
+    url: https://github.com/lunadeer/DeerTitle/blob/main/README.md
+    about: 在提问或报告 Bug 前，请先查阅项目文档

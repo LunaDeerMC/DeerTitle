@@ -1,0 +1,50 @@
+name: 使用问题
+description: 提出关于 DeerTitle 使用或配置方面的问题
+title: "[Question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        在提问之前，建议先查阅 [README.md](../../README.md) 和已有文档，看看是否已有解答。
+
+  - type: textarea
+    id: question
+    attributes:
+      label: 问题描述
+      description: 请清晰地描述你的问题
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: 上下文信息
+      description: 提供与问题相关的背景信息（配置片段、命令、错误信息等）
+      render: text
+    validations:
+      required: false
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: 已尝试的方法
+      description: 你已经尝试过哪些方法来解决这个问题？
+    validations:
+      required: false
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: DeerTitle 版本
+      placeholder: "例如: 1.0.0"
+    validations:
+      required: false
+
+  - type: input
+    id: server-version
+    attributes:
+      label: 服务端版本
+      placeholder: "例如: Paper 1.20.1"
+    validations:
+      required: false
