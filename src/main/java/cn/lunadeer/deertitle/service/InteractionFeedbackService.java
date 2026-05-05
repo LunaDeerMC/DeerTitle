@@ -1,6 +1,7 @@
 package cn.lunadeer.deertitle.service;
 
 import cn.lunadeer.deertitle.DeerTitlePlugin;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
@@ -54,7 +55,7 @@ public final class InteractionFeedbackService {
     }
 
     private void send(Player player, String template, Object... arguments) {
-        player.sendMessage(plugin.getTextFormatter().deserializeTemplate(template, arguments));
+        BukkitCompat.sendMessage(player, plugin.getTextFormatter().deserializeTemplate(template, arguments), plugin.getTextFormatter());
     }
 
     private void playConfiguredSound(Player player, String soundName) {

@@ -4,7 +4,7 @@ import cn.lunadeer.deertitle.DeerTitlePlugin;
 import cn.lunadeer.deertitle.database.model.TitleRecord;
 import cn.lunadeer.deertitle.database.repository.RepositoryRegistry;
 import cn.lunadeer.deertitle.text.TextFormatter;
-import net.kyori.adventure.text.Component;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -41,13 +41,13 @@ public final class TitleCardService {
         }
         ItemStack itemStack = new ItemStack(material);
         ItemMeta itemMeta = itemStack.getItemMeta();
-        itemMeta.displayName(textFormatter.deserializeTemplate(plugin.getConfigService().language().card.itemName, title.title()));
-        itemMeta.lore(List.of(
+        BukkitCompat.setDisplayName(itemMeta, textFormatter.deserializeTemplate(plugin.getConfigService().language().card.itemName, title.title()), textFormatter);
+        BukkitCompat.setLore(itemMeta, List.of(
                 textFormatter.deserializeTemplate(plugin.getConfigService().language().card.itemTitleLine, title.title()),
                 days == null || days < 0
                         ? textFormatter.deserialize(plugin.getConfigService().language().card.itemDurationPermanent)
                         : textFormatter.deserializeTemplate(plugin.getConfigService().language().card.itemDurationLine, days)
-        ));
+        ), textFormatter);
         itemMeta.getPersistentDataContainer().set(titleIdKey, PersistentDataType.INTEGER, title.id());
         itemMeta.getPersistentDataContainer().set(daysKey, PersistentDataType.INTEGER, days == null ? -1 : days);
         itemStack.setItemMeta(itemMeta);
@@ -66,7 +66,7 @@ public final class TitleCardService {
         Integer titleId = itemMeta.getPersistentDataContainer().get(titleIdKey, PersistentDataType.INTEGER);
         Integer days = itemMeta.getPersistentDataContainer().get(daysKey, PersistentDataType.INTEGER);
         if (titleId == null) {
-            player.sendMessage(textFormatter.deserialize(plugin.getConfigService().language().card.invalidCard));
+            BukkitCompat.sendMessage(player, textFormatter.deserialize(plugin.getConfigService().language().card.invalidCard), textFormatter);
             return false;
         }
         TitleService.TitleGrantResult grant = titleService.grantTitle(player.getUniqueId(), player.getName(), titleId, days == null || days < 0 ? null : days);

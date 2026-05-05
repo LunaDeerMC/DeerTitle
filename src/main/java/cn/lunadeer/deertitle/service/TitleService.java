@@ -7,6 +7,7 @@ import cn.lunadeer.deertitle.database.model.TitleRecord;
 import cn.lunadeer.deertitle.database.model.DateParts;
 import cn.lunadeer.deertitle.database.repository.RepositoryRegistry;
 import cn.lunadeer.deertitle.text.TextFormatter;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
 import net.kyori.adventure.text.Component;
 import org.bukkit.entity.Player;
 
@@ -161,13 +162,12 @@ public final class TitleService {
 
     public void refreshPlayerListName(Player player) throws Exception {
         Component prefix = currentTitlePrefix(player.getUniqueId());
-        if (prefix.equals(Component.empty())) {
-            player.playerListName(Component.text(player.getName()));
-            return;
-        }
-        player.playerListName(Component.empty()
+        Component listName = prefix.equals(Component.empty())
+                ? Component.text(player.getName())
+                : Component.empty()
                 .append(prefix)
-                .append(Component.text(player.getName())));
+                .append(Component.text(player.getName()));
+        BukkitCompat.setPlayerListName(player, listName, textFormatter);
     }
 
     private Component decorateTitle(Component title) {

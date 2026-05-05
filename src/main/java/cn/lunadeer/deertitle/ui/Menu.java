@@ -1,8 +1,8 @@
 package cn.lunadeer.deertitle.ui;
 
 import cn.lunadeer.deertitle.DeerTitlePlugin;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -28,7 +28,7 @@ public abstract class Menu implements InventoryHolder {
     protected Menu(DeerTitlePlugin plugin, Player viewer, int size, String title) {
         this.plugin = plugin;
         this.viewer = viewer;
-        this.inventory = Bukkit.createInventory(this, size, plugin.getTextFormatter().deserialize(title));
+        this.inventory = BukkitCompat.createInventory(this, size, plugin.getTextFormatter().deserialize(title), plugin.getTextFormatter());
     }
 
     public void open() throws Exception {
@@ -70,14 +70,14 @@ public abstract class Menu implements InventoryHolder {
     protected ItemStack item(Material material, String name, List<String> lore) {
         ItemStack itemStack = new ItemStack(material);
         ItemMeta meta = itemStack.getItemMeta();
-        meta.displayName(plugin.getTextFormatter().deserialize(name));
+        BukkitCompat.setDisplayName(meta, plugin.getTextFormatter().deserialize(name), plugin.getTextFormatter());
         List<Component> loreComponents = new ArrayList<>();
         if (lore != null) {
             for (String line : lore) {
                 loreComponents.add(plugin.getTextFormatter().deserialize(line));
             }
         }
-        meta.lore(loreComponents);
+        BukkitCompat.setLore(meta, loreComponents, plugin.getTextFormatter());
         meta.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
         itemStack.setItemMeta(meta);
         return itemStack;

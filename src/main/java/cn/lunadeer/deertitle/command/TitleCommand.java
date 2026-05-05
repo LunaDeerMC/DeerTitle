@@ -5,6 +5,7 @@ import cn.lunadeer.deertitle.configuration.Language;
 import cn.lunadeer.deertitle.service.ShopService;
 import cn.lunadeer.deertitle.service.TitleService;
 import cn.lunadeer.deertitle.ui.MainMenu;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.Command;
@@ -257,17 +258,17 @@ public final class TitleCommand implements TabExecutor {
     private void sendHelp(CommandSender sender) {
         Language language = plugin.getConfigService().language();
         for (String line : language.command.helpLines) {
-            sender.sendMessage(plugin.getTextFormatter().deserialize(line));
+            BukkitCompat.sendMessage(sender, plugin.getTextFormatter().deserialize(line), plugin.getTextFormatter());
         }
         if (sender.hasPermission("deertitle.admin")) {
             for (String line : language.command.adminHelpLines) {
-                sender.sendMessage(plugin.getTextFormatter().deserialize(line));
+                BukkitCompat.sendMessage(sender, plugin.getTextFormatter().deserialize(line), plugin.getTextFormatter());
             }
         }
     }
 
     private void send(CommandSender sender, String template, Object... arguments) {
-        sender.sendMessage(plugin.getTextFormatter().deserializeTemplate(template, arguments));
+        BukkitCompat.sendMessage(sender, plugin.getTextFormatter().deserializeTemplate(template, arguments), plugin.getTextFormatter());
     }
 
     private Player requirePlayer(CommandSender sender) {
