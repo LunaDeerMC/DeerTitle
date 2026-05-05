@@ -1,8 +1,11 @@
 package cn.lunadeer.deertitle.ui;
 
-import cn.lunadeer.deertitle.DeerTitlePlugin;
-import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
-import net.kyori.adventure.text.Component;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -12,11 +15,9 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
+import cn.lunadeer.deertitle.DeerTitlePlugin;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
+import net.kyori.adventure.text.Component;
 
 public abstract class Menu implements InventoryHolder {
 

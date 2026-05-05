@@ -1,12 +1,13 @@
 package cn.lunadeer.deertitle.service;
 
-import cn.lunadeer.deertitle.DeerTitlePlugin;
-import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 
-import java.util.HashSet;
-import java.util.Set;
+import cn.lunadeer.deertitle.DeerTitlePlugin;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
 
 public final class InteractionFeedbackService {
 

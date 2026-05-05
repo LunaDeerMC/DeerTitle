@@ -1,10 +1,7 @@
 package cn.lunadeer.deertitle.service;
 
-import cn.lunadeer.deertitle.DeerTitlePlugin;
-import cn.lunadeer.deertitle.database.model.TitleRecord;
-import cn.lunadeer.deertitle.database.repository.RepositoryRegistry;
-import cn.lunadeer.deertitle.text.TextFormatter;
-import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
+import java.util.List;
+
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -12,7 +9,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import java.util.List;
+import cn.lunadeer.deertitle.DeerTitlePlugin;
+import cn.lunadeer.deertitle.database.model.TitleRecord;
+import cn.lunadeer.deertitle.database.repository.RepositoryRegistry;
+import cn.lunadeer.deertitle.text.TextFormatter;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
 
 public final class TitleCardService {
 

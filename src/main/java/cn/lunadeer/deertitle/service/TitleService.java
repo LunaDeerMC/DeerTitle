@@ -1,16 +1,5 @@
 package cn.lunadeer.deertitle.service;
 
-import cn.lunadeer.deertitle.DeerTitlePlugin;
-import cn.lunadeer.deertitle.database.model.PlayerInfoRecord;
-import cn.lunadeer.deertitle.database.model.PlayerTitleRecord;
-import cn.lunadeer.deertitle.database.model.TitleRecord;
-import cn.lunadeer.deertitle.database.model.DateParts;
-import cn.lunadeer.deertitle.database.repository.RepositoryRegistry;
-import cn.lunadeer.deertitle.text.TextFormatter;
-import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
-import net.kyori.adventure.text.Component;
-import org.bukkit.entity.Player;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -18,6 +7,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+
+import org.bukkit.entity.Player;
+
+import cn.lunadeer.deertitle.DeerTitlePlugin;
+import cn.lunadeer.deertitle.database.model.DateParts;
+import cn.lunadeer.deertitle.database.model.PlayerInfoRecord;
+import cn.lunadeer.deertitle.database.model.PlayerTitleRecord;
+import cn.lunadeer.deertitle.database.model.TitleRecord;
+import cn.lunadeer.deertitle.database.repository.RepositoryRegistry;
+import cn.lunadeer.deertitle.text.TextFormatter;
+import cn.lunadeer.deertitle.utils.compat.BukkitCompat;
+import net.kyori.adventure.text.Component;
 
 public final class TitleService {
 

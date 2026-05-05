@@ -1,7 +1,9 @@
 package cn.lunadeer.deertitle.utils.compat;
 
-import cn.lunadeer.deertitle.text.TextFormatter;
-import net.kyori.adventure.text.Component;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -9,9 +11,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.List;
+import cn.lunadeer.deertitle.text.TextFormatter;
+import net.kyori.adventure.text.Component;
 
 public final class BukkitCompat {
 
