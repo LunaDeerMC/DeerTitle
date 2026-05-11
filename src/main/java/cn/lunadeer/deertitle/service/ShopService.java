@@ -64,6 +64,36 @@ public final class ShopService {
         });
     }
 
+    public TitleShopRecord addOffer(int titleId, double price, int days, int amount, LocalDate saleEndAt) throws Exception {
+        TitleRecord title = repositories.titles().findById(titleId)
+                .orElseThrow(() -> new IllegalArgumentException("Title not found: " + titleId));
+        if (repositories.titleShop().findByTitleId(title.id()).isPresent()) {
+            throw new IllegalArgumentException("Title already has a shop offer: " + titleId);
+        }
+        TitleShopRecord record = new TitleShopRecord(0, title.id(), days, amount, DateParts.from(saleEndAt), price);
+        return repositories.titleShop().save(record);
+    }
+
+    public TitleShopRecord updateOffer(int shopId, Double price, Integer days, Integer amount, LocalDate saleEndAt) throws Exception {
+        TitleShopRecord existing = repositories.titleShop().findById(shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Shop offer not found: " + shopId));
+        TitleShopRecord updated = new TitleShopRecord(
+                existing.id(),
+                existing.titleId(),
+                days != null ? days : existing.days(),
+                amount != null ? amount : existing.amount(),
+                saleEndAt != null ? DateParts.from(saleEndAt) : existing.saleEndAt(),
+                price != null ? price : existing.price()
+        );
+        return repositories.titleShop().save(updated);
+    }
+
+    public void deleteOffer(int shopId) throws Exception {
+        repositories.titleShop().findById(shopId)
+                .orElseThrow(() -> new IllegalArgumentException("Shop offer not found: " + shopId));
+        repositories.titleShop().delete(shopId);
+    }
+
     public PurchaseResult purchase(Player player, int offerId) throws Exception {
         TitleShopRecord offer = repositories.titleShop().findById(offerId)
                 .orElseThrow(() -> new PurchaseFailedException(PurchaseFailureReason.UNAVAILABLE));
