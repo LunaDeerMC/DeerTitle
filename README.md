@@ -108,40 +108,51 @@ build/libs/DeerTitle-<version>.jar
 
 别名：`/dt`、`/title`
 
-- `/dt`
-  - 玩家执行时打开主菜单
-  - 控制台执行时显示帮助
-- `/dt help`
-- `/dt list`
-- `/dt wear <id>`
-- `/dt equip <id>`
-- `/dt remove`
-- `/dt current`
-- `/dt balance`
-- `/dt shop`
-- `/dt buy <offerId>`
+- `/dt` — 打开主菜单（玩家）或显示帮助（控制台）
+- `/dt help [subcommand]` — 显示帮助，可选查看子命令详细用法
+- `/dt list` — 列出自己拥有的称号
+- `/dt wear <titleId>` — 佩戴一个称号（支持 Tab 补全）
+- `/dt equip <titleId>` — `wear` 的别名
+- `/dt remove` — 卸下当前称号
+- `/dt current` — 显示当前佩戴的称号
+- `/dt balance` — 显示余额
+- `/dt shop` — 打开商店（玩家）或打印列表（控制台）
+- `/dt buy <offerId>` — 购买一个商店优惠（支持 Tab 补全）
 
 ## 管理命令
 
 权限节点：`deertitle.admin`
 
-- `/dt reload`
-- `/dt admin create <title> || <description>`
-- `/dt admin setdesc <titleId> <description>`
-- `/dt admin setenabled <titleId> <true|false>`
-- `/dt admin grant <player> <titleId> [days|-1]`
-- `/dt admin revoke <player> <titleId>`
-- `/dt admin shop set <titleId> <price> <days|-1> <amount|-1> <saleEnd|-1>`
-- `/dt admin shop clear <titleId>`
-- `/dt admin coin <set|add> <player> <amount>`
-- `/dt admin card <player> <titleId> [days|-1]`
+- `/dt reload` — 重载配置
+- `/dt admin create <title> || <description>` — 创建称号
+- `/dt admin setdesc <titleId> <description>` — 更新称号描述（支持 Tab 补全）
+- `/dt admin setenabled <titleId> <true|false>` — 启用/禁用称号（支持 Tab 补全）
+- `/dt admin grant <player> <titleId> [days|-1]` — 向玩家授予称号（支持 Tab 补全）
+- `/dt admin revoke <player> <titleId>` — 从玩家撤销称号（支持 Tab 补全）
+- `/dt admin shop add <titleId> price=<p> days=<d> stock=<n> [saleEnd=<date>]` — 添加商店优惠
+- `/dt admin shop set <shopId> [price=<p>] [days=<d>] [stock=<n>] [saleEnd=<date>]` — 修改已有优惠
+- `/dt admin shop remove <shopId>` — 移除商店优惠（支持 Tab 补全）
+- `/dt admin coin <set|add> <player> <amount>` — 管理内置货币（支持 Tab 补全）
+- `/dt admin card <player> <titleId> [days|-1]` — 向在线玩家发放称号卡（支持 Tab 补全）
 
-说明：
+### Shop 管理参数说明
+
+Shop 的 `add` 和 `set` 子命令使用 `key=value` 命名参数，不区分顺序：
+
+- `price=<p>` — 价格（正数）
+- `days=<d>` — 时长天数，`-1` 表示永久
+- `stock=<n>` — 库存数量，`-1` 表示无限
+- `saleEnd=<date>` — 促销截止日期，`-1` 表示永不过期，否则使用 `yyyy-MM-dd` 格式
+
+`add` 时 `price`、`days`、`stock` 为必填，`saleEnd` 可选。
+`set` 时至少传入一个参数，只更新传入的字段。
+
+### 通用说明
 
 - `days = -1` 表示永久称号
-- `amount = -1` 表示无限库存
-- `saleEnd = -1` 表示永不过期；否则使用 `yyyy-MM-dd` 格式
+- `saleEnd = -1` 表示永不过期
 - `create` 子命令使用 `||` 分隔称号文本与描述
+- 所有带 `<titleId>`、`<offerId>`、`<shopId>`、`<player>` 的参数均支持 Tab 补全
 
 ## PlaceholderAPI 占位符
 
@@ -163,7 +174,9 @@ build/libs/DeerTitle-<version>.jar
 
 ## 目录简述
 
-- `command`：命令处理
+- `command`：命令分发器与抽象基类
+  - `command/player`：玩家子命令
+  - `command/admin`：管理子命令
 - `configuration`：配置与语言加载
 - `database`：连接管理、迁移、仓储
 - `display`：聊天和列表名显示逻辑
