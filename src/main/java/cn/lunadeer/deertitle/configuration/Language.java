@@ -108,6 +108,7 @@ public final class Language extends ConfigurationFile {
         public String shopEntry = "<gray>#{0}</gray> {1} <dark_gray>|</dark_gray> <gray>price:</gray> <white>{2}</white> <dark_gray>|</dark_gray> <gray>stock:</gray> <white>{3}</white> <dark_gray>|</dark_gray> <gray>days:</gray> <white>{4}</white> <dark_gray>|</dark_gray> <gray>until:</gray> <white>{5}</white> <dark_gray>|</dark_gray> <gray>{6}</gray>";
         public String saleSaved = "<green>Saved shop offer <white>#{0}</white> for title <white>#{1}</white>.</green>";
         public String saleRemoved = "<yellow>Removed shop offer for title <white>#{0}</white>.</yellow>";
+        public String alreadyOwnedPermanent = "<yellow>你已经永久拥有此称号。</yellow>";
     }
 
     public static final class CardText extends ConfigurationPart {

@@ -2,6 +2,7 @@ package cn.lunadeer.deertitle.service;
 
 import cn.lunadeer.deertitle.DeerTitlePlugin;
 import cn.lunadeer.deertitle.database.model.DateParts;
+import cn.lunadeer.deertitle.database.model.PlayerTitleRecord;
 import cn.lunadeer.deertitle.database.model.TitleRecord;
 import cn.lunadeer.deertitle.database.model.TitleShopRecord;
 import cn.lunadeer.deertitle.database.repository.RepositoryRegistry;
@@ -11,6 +12,7 @@ import org.bukkit.entity.Player;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 public final class ShopService {
 
@@ -108,6 +110,10 @@ public final class ShopService {
         if (offer.amount() == 0) {
             throw new PurchaseFailedException(PurchaseFailureReason.OUT_OF_STOCK);
         }
+        Optional<PlayerTitleRecord> existingOwnership = repositories.playerTitles().findOwnership(player.getUniqueId(), title.id());
+        if (existingOwnership.isPresent() && existingOwnership.get().expireAt().isPermanent()) {
+            throw new PurchaseFailedException(PurchaseFailureReason.ALREADY_OWNED_PERMANENT);
+        }
         if (!economyService.withdraw(player, offer.price())) {
             throw new PurchaseFailedException(PurchaseFailureReason.INSUFFICIENT_FUNDS);
         }
@@ -136,7 +142,8 @@ public final class ShopService {
         UNAVAILABLE,
         EXPIRED,
         OUT_OF_STOCK,
-        INSUFFICIENT_FUNDS
+        INSUFFICIENT_FUNDS,
+        ALREADY_OWNED_PERMANENT
     }
 
     public static final class PurchaseFailedException extends Exception {

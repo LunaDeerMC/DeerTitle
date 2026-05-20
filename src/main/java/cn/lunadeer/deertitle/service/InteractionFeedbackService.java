@@ -39,6 +39,7 @@ public final class InteractionFeedbackService {
             case OUT_OF_STOCK -> onFailure(player, plugin.getConfigService().language().shop.outOfStock);
             case INSUFFICIENT_FUNDS -> onFailure(player, plugin.getConfigService().language().shop.insufficientFunds);
             case UNAVAILABLE -> onFailure(player, plugin.getConfigService().language().shop.unavailable);
+            case ALREADY_OWNED_PERMANENT -> onFailure(player, plugin.getConfigService().language().shop.alreadyOwnedPermanent);
         }
     }
 
