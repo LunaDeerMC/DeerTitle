@@ -1,6 +1,7 @@
 package cn.lunadeer.deertitle.text;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.minimessage.MiniMessage;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -25,7 +26,7 @@ public final class TextFormatter {
         if (input == null || input.isBlank()) {
             return Component.empty();
         }
-        return miniMessage.deserialize(translateLegacySyntax(input));
+        return miniMessage.deserialize(translateLegacySyntax(input)).decoration(TextDecoration.ITALIC, false);
     }
 
     public Component deserializeTemplate(String template, Object... arguments) {
