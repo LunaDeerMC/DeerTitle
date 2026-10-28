@@ -1,0 +1,81 @@
+{
+  "date": "2026-10-28",
+  "artifact_sha256": "511b8b529413f9d41c94ed793bd82ac35c1794bbd7625161d5cfda348b5b4cbc",
+  "default_tests": {
+    "passed": 81,
+    "failed": 0,
+    "errors": 0,
+    "external_conditional_skipped": 20
+  },
+  "color_checks": {
+    "rgb_grid": 4096,
+    "random_rgb_roundtrips": 20000,
+    "random_hsv_reference_comparisons": 10000,
+    "native_client_integer_slider_initials": 718
+  },
+  "real_protocol": {
+    "total_checks": 42,
+    "results": [
+      {
+        "server": "paper-26.1.1-4",
+        "checks": 21,
+        "passed": true,
+        "player_non_op": true,
+        "admin_op": true,
+        "server_stopped": true
+      },
+      {
+        "server": "folia-26.1.2-8",
+        "checks": 21,
+        "passed": true,
+        "player_non_op": true,
+        "admin_op": true,
+        "server_stopped": true
+      }
+    ],
+    "checks": [
+      "native_rgb_range_shape",
+      "invalid_rgb_0_no_write_and_recoverable",
+      "invalid_rgb_1_no_write_and_recoverable",
+      "invalid_rgb_2_no_write_and_recoverable",
+      "invalid_rgb_3_no_write_and_recoverable",
+      "invalid_rgb_4_no_write_and_recoverable",
+      "rgb_float_callback_ff0080",
+      "mode_switch_retains_exact_rgb",
+      "back_discards_slider_draft",
+      "hsv_float_callback_green",
+      "gray_keeps_hue_through_modes_and_restores_saturation",
+      "black_keeps_hue_saturation_through_modes_and_restores_value",
+      "invalid_hsv_no_write_and_recoverable",
+      "preview_switch_apply_color_consumes_no_credit_and_writes_nothing",
+      "one_player_save_and_duplicate_callback_consumes_one_credit",
+      "invalid_hex_slider_entry_recovers",
+      "legacy_hex_input_remains_functional",
+      "legacy_palette_remains_functional",
+      "admin_precise_non_round_hsv_roundtrip",
+      "admin_slider_previews_and_applications_do_not_write",
+      "admin_save_creates_public_title_without_custom_credit_charge"
+    ]
+  },
+  "graphical_client": {
+    "version": "Vanilla Minecraft 26.1.1",
+    "server": "Paper 26.1.1 build 4",
+    "resolution": [
+      1600,
+      1000
+    ],
+    "gui_scale": 2,
+    "language": "zh_cn",
+    "passed": true,
+    "checks": [
+      "actual slider input",
+      "RGB ff0080 preview",
+      "HSV 120 degrees green preview",
+      "apply returns correct editor draft"
+    ]
+  },
+  "cleanup": {
+    "test_servers_stopped": true,
+    "client_and_display_stopped": true
+  }
+}

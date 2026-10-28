@@ -337,10 +337,76 @@ public final class DialogUi implements AutoCloseable {
             String color = FormValues.text(response.getText("hex"), 32, "颜色值").trim();
             chooseColor(p, draft, start, color);
         }));
+        buttons.add(button(screen, "RGB 滑块", permission,
+                (p, response) -> startColorSliders(p, draft, start, false, response)));
+        buttons.add(button(screen, "HSV 滑块", permission,
+                (p, response) -> startColorSliders(p, draft, start, true, response)));
         String initial = start ? draft.startColor() : draft.endColor();
         show(player, start ? "起始颜色" : "结束颜色", List.of(),
             List.of(input("hex", "颜色值", initial, 32)), buttons,
             back(screen, permission, (p, response) -> openEditor(p, draft)), 3);
+    }
+
+    private void startColorSliders(Player player, EditorDraft draft, boolean start, boolean hsv,
+                                   DialogResponseView response) {
+        try {
+            String color = FormValues.text(response.getText("hex"), 32, "颜色值").trim();
+            openColorSliders(player, draft, start, hsv, ColorSliderDraft.parse(color));
+        } catch (IllegalArgumentException exception) {
+            access.error(player, exception.getMessage());
+            openColorPicker(player, draft, start);
+        }
+    }
+
+    private void openColorSliders(Player player, EditorDraft draft, boolean start, boolean hsv, ColorSliderDraft color) {
+        String permission = draft.admin() ? ADMIN : CUSTOM;
+        if (!allowed(player, permission)) return;
+        Screen screen = begin(player);
+        String hex = color.hex();
+        List<DialogBody> body = new ArrayList<>();
+        body.add(body(colorLabel("████", hex).append(Component.text("  " + hex, NamedTextColor.WHITE))));
+        try {
+            EditorDraft preview = draft.colors(start ? hex : draft.startColor(), start ? draft.endColor() : hex);
+            body.add(body(TitleText.parse(validate(preview.source()))));
+        } catch (IllegalArgumentException exception) {
+            body.add(body(Component.text(exception.getMessage(), NamedTextColor.RED)));
+        }
+        List<DialogInput> inputs = hsv ? List.of(
+                DialogInput.numberRange("hue", Component.text("色相 H"), 0, 360)
+                        .initial((float) color.hue()).step(1f).width(320).labelFormat("%s：%s°").build(),
+                DialogInput.numberRange("saturation", Component.text("饱和度 S"), 0, 100)
+                        .initial((float) color.saturation()).step(1f).width(320).labelFormat("%s：%s%%").build(),
+                DialogInput.numberRange("value", Component.text("明度 V"), 0, 100)
+                        .initial((float) color.value()).step(1f).width(320).labelFormat("%s：%s%%").build()) : List.of(
+                DialogInput.numberRange("red", Component.text("红 R", NamedTextColor.RED), 0, 255)
+                        .initial((float) color.rgb().red()).step(1f).width(320).build(),
+                DialogInput.numberRange("green", Component.text("绿 G", NamedTextColor.GREEN), 0, 255)
+                        .initial((float) color.rgb().green()).step(1f).width(320).build(),
+                DialogInput.numberRange("blue", Component.text("蓝 B", NamedTextColor.BLUE), 0, 255)
+                        .initial((float) color.rgb().blue()).step(1f).width(320).build());
+        List<ActionButton> buttons = List.of(
+                button(screen, "预览", permission, (p, response) -> sliderAction(p, draft, start, hsv, color, response,
+                        next -> openColorSliders(p, draft, start, hsv, next))),
+                button(screen, "使用颜色", permission, (p, response) -> sliderAction(p, draft, start, hsv, color, response,
+                        next -> chooseColor(p, draft, start, next.hex()))),
+                button(screen, hsv ? "RGB 滑块" : "HSV 滑块", permission,
+                        (p, response) -> sliderAction(p, draft, start, hsv, color, response,
+                                next -> openColorSliders(p, draft, start, !hsv, next))));
+        show(player, (start ? "起始颜色" : "结束颜色") + (hsv ? " · HSV" : " · RGB"), body, inputs, buttons,
+                back(screen, permission, (p, response) -> openColorPicker(p, draft, start)), 2);
+    }
+
+    private void sliderAction(Player player, EditorDraft draft, boolean start, boolean hsv, ColorSliderDraft current,
+                              DialogResponseView response, Consumer<ColorSliderDraft> next) {
+        try {
+            ColorSliderDraft updated = hsv
+                    ? current.withHsv(response.getFloat("hue"), response.getFloat("saturation"), response.getFloat("value"))
+                    : current.withRgb(response.getFloat("red"), response.getFloat("green"), response.getFloat("blue"));
+            next.accept(updated);
+        } catch (IllegalArgumentException exception) {
+            access.error(player, exception.getMessage());
+            openColorSliders(player, draft, start, hsv, current);
+        }
     }
 
     private void chooseColor(Player player, EditorDraft draft, boolean start, String color) {
