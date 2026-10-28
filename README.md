@@ -69,7 +69,7 @@ custom-title:
 - Vault 余额是否跨服共享，取决于所选经济插件；共享 DeerTitle 数据库不能代替经济插件的数据同步。
 - `database.ssl: true` 对远端数据库执行证书及主机名验证。MySQL 关闭 TLS 时如需 RSA 公钥检索，须显式设置 `database.allow-public-key-retrieval: true`；默认关闭。
 - `display.time-zone` 控制 UI 销售时间输入与日期显示；`import.mini-player-title.source-time-zone` 单独解释旧数据日期。
-- 修改数据库或经济模式后重启。不要在仍有待核对付款时切换经济模式。
+- 修改数据库或经济模式后重启。
 
 ## PlaceholderAPI
 
@@ -89,7 +89,7 @@ custom-title:
 
 | 命令 | 用途 |
 | --- | --- |
-| `/dt status` | 查看数据库、经济模式、待核对付款数量 |
+| `/dt status` | 查看数据库、经济模式与跨服配置 |
 | `/dt admin` | 商店管理 |
 | `/dt editor` | 新建公共称号 |
 | `/dt coins <玩家或UUID> <add\|take> <数量>` | 增减内置称号币 |
@@ -97,8 +97,6 @@ custom-title:
 | `/dt grant <玩家或UUID> <称号ID>` | 永久授予称号 |
 | `/dt import miniplayertitle preview` | 只读分析旧数据，产生导入预览 |
 | `/dt import miniplayertitle confirm <确认码>` | 导入已预览的快照 |
-| `/dt payments list` | 查看待核对付款 |
-| `/dt payments resolve <订单UUID> <paid\|cancel>` | 核对后的人工处理，见下节 |
 
 离线玩家使用 UUID；在线玩家可使用完整名字。普通权限为 `deertitle.use`、`deertitle.custom`，默认开启；管理权限为 `deertitle.admin`，默认仅 OP。
 
@@ -119,24 +117,13 @@ custom-title:
 
 旧数据库没有可靠的“自定义称号创建者”和“剩余自定义次数”字段，因此导入称号保留使用权，作为历史公共称号管理，不根据描述猜测编辑权限。尚未兑换的实体称号卡不在数据库中，不属于这次数据库导入。超过 100,000 行或 8,000,000 个文本字符的来源会停止预览，需分批迁移方案。
 
-## Vault 付款恢复
+## Vault 付款
 
-内置币的扣款和发放在同一事务中完成。Vault 是外部系统，数据库事务无法同时提交它的扣款；DeerTitle 先保存订单并预留库存，再执行一次扣款。
+按经济插件返回的交易结果处理：**成功就发放，失败就取消购买并释放库存**。重复点击不会重复扣款。
 
-- 明确失败：取消订单、释放库存，不发放。
-- 明确成功：记录已扣款，再发放；重复完成不会重复发放。
-- 抛错、断线或崩溃导致结果未知：保留订单与库存，不再次扣款、不猜测退款。
+经济接口抛异常或返回空结果时，同样结束本次购买并记录日志，不自动再次扣款或退款。崩溃留下的预留超过 5 分钟后由后台释放；已经记录扣款成功、尚未发放的内容会自动补发。维护在启动时及之后每 30 秒运行，无需管理员执行付款处理命令。
 
-管理员先查看 `/dt payments list` 并核对经济插件账单。确认已付款使用 `paid`，确认未付款使用 `cancel`；这两个操作都不会调用经济插件扣款或退款。
-
-`CHARGING` 状态可能仍有活跃扣款，普通处理命令会拒绝。处理此状态前，先停止其他运行 DeerTitle 的子服，并在新启动的维护实例上核对旧操作确已结束，再使用：
-
-```text
-/dt payments resolve <订单UUID> paid origin-stopped
-/dt payments resolve <订单UUID> cancel origin-stopped
-```
-
-`origin-stopped` 是管理员对操作来源已停止的明确确认，不是自动检测结果。不要在来源操作仍运行时使用。`PREPARED` 只能取消，`CHARGED` 可以安全完成。
+这是游戏场景的简化取舍：如果经济插件实际扣钱后才抛异常，或进程恰好在扣款后崩溃，仍可能出现扣款与发放不一致；插件不为这些极少数情况引入停服核单流程。
 
 ## 开发与验证
 

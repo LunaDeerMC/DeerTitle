@@ -138,14 +138,14 @@ class PaymentCoordinatorTest {
     }
 
     @Test
-    void unknownOutcomeKeepsTheReservationAndBlocksTheNextPurchase() {
-        assertAmbiguous(current -> CompletableFuture.completedFuture(MoneyProvider.Result.UNKNOWN));
+    void providerErrorReleasesStockAndAllowsAnotherPurchase() {
+        assertCancelledAndRetryable(current -> CompletableFuture.completedFuture(MoneyProvider.Result.ERROR));
     }
 
     @Test
-    void synchronousThrowMayFollowAMoneyMovementAndMustNotReleaseOrRetry() {
+    void exceptionAfterDebitCancelsThePurchaseWithoutAutomaticRetry() {
         AtomicInteger movements = new AtomicInteger();
-        assertAmbiguous(current -> {
+        assertCancelledAndRetryable(current -> {
             movements.incrementAndGet();
             throw new IllegalStateException("provider failure after debit");
         });
@@ -153,39 +153,50 @@ class PaymentCoordinatorTest {
     }
 
     @Test
-    void failedProviderFutureIsUnknownRatherThanARejection() {
-        assertAmbiguous(current -> CompletableFuture.failedFuture(new IllegalStateException("network reply lost")));
+    void failedProviderFutureEndsThePurchase() {
+        assertCancelledAndRetryable(current -> CompletableFuture.failedFuture(new IllegalStateException("network reply lost")));
     }
 
     @Test
-    void missingProviderFutureOrResultCannotBeCalledADecline() {
-        assertAmbiguous(current -> null);
+    void missingProviderFutureEndsThePurchase() {
+        assertCancelledAndRetryable(current -> null);
     }
 
     @Test
-    void nullProviderResultCannotBeCalledADecline() {
-        assertAmbiguous(current -> CompletableFuture.completedFuture(null));
+    void nullProviderResultEndsThePurchase() {
+        assertCancelledAndRetryable(current -> CompletableFuture.completedFuture(null));
     }
 
     @Test
-    void cancelledProviderFutureDoesNotInferThatMoneyWasNotTaken() {
-        assertAmbiguous(current -> {
+    void cancelledProviderFutureEndsThePurchaseWithoutRetry() {
+        assertCancelledAndRetryable(current -> {
             CompletableFuture<MoneyProvider.Result> future = new CompletableFuture<>();
             future.cancel(false);
             return future;
         });
     }
 
-    private void assertAmbiguous(Function<PaymentOperation, CompletableFuture<MoneyProvider.Result>> withdraw) {
+    private void assertCancelledAndRetryable(Function<PaymentOperation, CompletableFuture<MoneyProvider.Result>> withdraw) {
         PaymentOperation operation = reserve();
+        AtomicInteger calls = new AtomicInteger();
+        AtomicInteger logged = new AtomicInteger();
+        coordinator = new PaymentCoordinator(store, Runnable::run, failed -> {
+            assertEquals(operation.id(), failed.id());
+            logged.incrementAndGet();
+        });
         CompletionException error = assertThrows(CompletionException.class,
-                () -> coordinator.settle(CompletableFuture.completedFuture(operation), withdraw).join());
-        assertTrue(error.getCause().getMessage().contains(operation.id().toString()));
-        assertEquals(PaymentState.CHARGING, state(operation));
-        assertEquals(0L, store.listing(listing.id()).orElseThrow().remainingStock());
+                () -> coordinator.settle(CompletableFuture.completedFuture(operation), current -> {
+                    calls.incrementAndGet();
+                    return withdraw.apply(current);
+                }).join());
+        assertTrue(error.getCause().getMessage().contains("购买未完成"));
+        assertEquals(PaymentState.CANCELLED, state(operation));
+        assertEquals(1L, store.listing(listing.id()).orElseThrow().remainingStock());
         assertTrue(store.inventory(player).isEmpty());
-        TitleException next = assertThrows(TitleException.class, this::reserve);
-        assertEquals(ErrorCode.PAYMENT_PENDING, next.code());
+        assertEquals(1, calls.get());
+        assertEquals(1, logged.get());
+        assertNotEquals(operation.id(), reserve().id());
+        assertEquals(1, calls.get());
     }
 
     @Test
@@ -213,6 +224,28 @@ class PaymentCoordinatorTest {
         assertThrows(CompletionException.class,
                 () -> coordinator.settle(CompletableFuture.completedFuture(operation), withdraw).join());
         assertEquals(3, store.profile(player).customCredits());
+        assertEquals(1, withdrawals.get());
+    }
+
+    @Test
+    void confirmedPaymentWithFailedDeliveryIsAutomaticallyCompletedWithoutAnotherWithdrawal() throws Exception {
+        PaymentOperation operation = reserve();
+        AtomicInteger withdrawals = new AtomicInteger();
+        try (var connection = java.sql.DriverManager.getConnection("jdbc:sqlite:" + directory.resolve("payments.db"));
+             var statement = connection.createStatement()) {
+            statement.execute("CREATE TRIGGER reject_grant BEFORE INSERT ON dt_ownership BEGIN SELECT RAISE(FAIL, 'test delivery failure'); END");
+            assertThrows(CompletionException.class, () -> coordinator.settle(CompletableFuture.completedFuture(operation), current -> {
+                withdrawals.incrementAndGet();
+                return CompletableFuture.completedFuture(MoneyProvider.Result.SUCCESS);
+            }).join());
+            assertEquals(PaymentState.CHARGED, state(operation));
+            assertTrue(store.inventory(player).isEmpty());
+            statement.execute("DROP TRIGGER reject_grant");
+        }
+        assertEquals(1, store.maintainPayments(10).completed());
+        assertEquals(0, store.maintainPayments(10).completed());
+        assertEquals(PaymentState.COMPLETE, state(operation));
+        assertEquals(1, store.inventory(player).size());
         assertEquals(1, withdrawals.get());
     }
 }

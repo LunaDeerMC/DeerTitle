@@ -22,6 +22,9 @@ import static cn.lunadeer.deertitle.domain.ErrorCode.*;
  */
 public final class TitleStore implements AutoCloseable {
     private static final Object SQLITE_SCHEMA_LOCK = new Object();
+    private static final String DELIVERY_RETRY = "automatic-delivery-retry";
+    private static final long PAYMENT_EXPIRY_SECONDS = 300;
+    private static final long DELIVERY_RETRY_SECONDS = 30;
     private final DataSource source;
     private final SqlDialect dialect;
     private final Clock clock;
@@ -63,6 +66,7 @@ public final class TitleStore implements AutoCloseable {
             for (String sql : statements) execute(c, sql);
             ensureIndex(c, "dt_payment", "dt_payment_player_state", "player_uuid", "state");
             ensureIndex(c, "dt_payment", "dt_payment_state_created", "state", "created_at");
+            ensureIndex(c, "dt_payment", "dt_payment_state_updated", "state", "updated_at");
             ensureIndex(c, "dt_listing", "dt_listing_title", "title_id");
             ensureIndex(c, "dt_ownership", "dt_ownership_title", "title_id");
             execute(c, dialect.insertMutex());
@@ -344,35 +348,67 @@ public final class TitleStore implements AutoCloseable {
         write(c -> { completePayment(c, requirePayment(c, id)); return null; });
     }
 
-    /** Use only before withdrawal or after a definite failed withdrawal, never on timeout. */
+    /** Ends an unsuccessful attempt and releases its reservation without calling the economy. */
     public void cancelPayment(UUID id, String reason) {
         write(c -> { cancelPayment(c, requirePayment(c, id), reason); return null; });
     }
 
-    /** Safe reconciliation: never races a possibly live external withdrawal. */
-    public void resolvePayment(UUID id, boolean paid) {
-        resolvePayment(id, paid, false);
-    }
+    public record MaintenanceResult(int completed, int cancelled, int failed) {}
 
     /**
-     * An explicit operator assertion is required for CHARGING: all originating
-     * servers/calls must be stopped and external history checked. An age or lease
-     * timeout alone cannot establish that a blocked external call has stopped.
+     * Bounded automatic housekeeping. This never withdraws or refunds money.
+     * Normal Vault calls are assumed to finish promptly: five-minute abandoned
+     * reservations are released, while recorded successful payments are delivered.
      */
-    public void resolvePayment(UUID id, boolean paid, boolean originStopped) {
-        write(c -> {
-            PaymentOperation old = requirePayment(c, id);
-            if (old.state() == PaymentState.CHARGING && !originStopped) throw error(INVALID_PAYMENT_STATE);
-            if (paid) {
-                if (old.state() == PaymentState.CANCELLED || old.state() == PaymentState.PREPARED)
-                    throw error(INVALID_PAYMENT_STATE);
-                if (old.state() != PaymentState.COMPLETE) {
-                    paymentState(c, id, PaymentState.CHARGED, null);
-                    completePayment(c, requirePayment(c, id));
+    public MaintenanceResult maintainPayments(int limit) {
+        if (limit < 1 || limit > 100) throw error(INVALID_INPUT);
+        Instant current = now();
+        long expired = current.minusSeconds(PAYMENT_EXPIRY_SECONDS).toEpochMilli();
+        long retryBefore = current.minusSeconds(DELIVERY_RETRY_SECONDS).toEpochMilli();
+        List<UUID> candidates = read(c -> query(c,
+                "SELECT id FROM dt_payment WHERE (state IN ('PREPARED','CHARGING') AND updated_at<=?) "
+                        + "OR (state='CHARGED' AND (failure IS NULL OR failure<>? OR updated_at<=?)) "
+                        + "ORDER BY updated_at,id LIMIT ?",
+                r -> UUID.fromString(r.getString(1)), expired, DELIVERY_RETRY, retryBefore, limit));
+        int completed = 0, cancelled = 0, failed = 0;
+        for (UUID id : candidates) {
+            try {
+                int action = write(c -> maintainPayment(c, id, expired, retryBefore));
+                if (action == 1) completed++;
+                else if (action == 2) cancelled++;
+            } catch (TitleException failure) {
+                failed++;
+                // A bad delivery must neither roll back other rows nor occupy the
+                // front of every batch. Leave its paid status intact for a later try.
+                try {
+                    write(c -> {
+                        execute(c, "UPDATE dt_payment SET updated_at=?,failure=? WHERE id=? AND state='CHARGED'",
+                                now().toEpochMilli(), DELIVERY_RETRY, id.toString());
+                        return null;
+                    });
+                } catch (TitleException unavailable) {
+                    // The caller reports the failure count; the next bounded pass retries.
                 }
-            } else cancelPayment(c, old, "administrator-confirmed-not-charged");
-            return null;
-        });
+            }
+        }
+        return new MaintenanceResult(completed, cancelled, failed);
+    }
+
+    private int maintainPayment(Connection c, UUID id, long expired, long retryBefore) throws SQLException {
+        Optional<PaymentOperation> found = findPayment(c, id);
+        if (found.isEmpty()) return 0;
+        PaymentOperation operation = found.get();
+        long updated = one(c, "SELECT updated_at FROM dt_payment WHERE id=?", r -> r.getLong(1), id.toString()).orElseThrow();
+        if (operation.state() == PaymentState.CHARGED) {
+            if (DELIVERY_RETRY.equals(operation.failure()) && updated > retryBefore) return 0;
+            completePayment(c, operation);
+            return 1;
+        }
+        if ((operation.state() == PaymentState.PREPARED || operation.state() == PaymentState.CHARGING) && updated <= expired) {
+            cancelPayment(c, operation, "attempt-expired");
+            return 2;
+        }
+        return 0;
     }
 
     public Optional<PaymentOperation> payment(UUID id) { return read(c -> findPayment(c, id)); }

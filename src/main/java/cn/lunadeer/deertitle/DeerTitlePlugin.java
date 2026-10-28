@@ -49,8 +49,6 @@ public final class DeerTitlePlugin extends JavaPlugin {
                 expansion = new TitleExpansion(runtime, getPluginMeta().getVersion());
                 if (!expansion.register()) getLogger().warning("PlaceholderAPI 占位符注册失败，请检查重复标识。");
             } else getLogger().info("未安装 PlaceholderAPI；安装后可在聊天和 Tab 中展示称号。");
-            long unresolved = store.unresolvedPaymentCount();
-            if (unresolved > 0) getLogger().warning("有 " + unresolved + " 笔待核对付款：/deertitle payments list");
             getLogger().info("DeerTitle 已就绪（" + settings.database().type() + " / " + settings.currency().name().toLowerCase(java.util.Locale.ROOT) + "）");
         } catch (Exception ex) {
             String reason = ex instanceof IllegalArgumentException ? ex.getMessage() : ex.getClass().getSimpleName();

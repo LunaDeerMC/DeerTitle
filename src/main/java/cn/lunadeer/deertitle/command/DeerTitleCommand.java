@@ -64,15 +64,11 @@ public final class DeerTitleCommand implements CommandExecutor, TabCompleter {
                         else runtime.ui().openAdminShop(player);
                     });
                 }
-                case "status" -> runtime.commandAsync(sender, () -> runtime.store().unresolvedPaymentCount(), count -> {
-                    line(sender, "DeerTitle " + plugin.getPluginMeta().getVersion() + " · " + runtime.settings().database().type()
+                case "status" -> line(sender, "DeerTitle " + plugin.getPluginMeta().getVersion() + " · " + runtime.settings().database().type()
                             + " · " + runtime.currency() + " · 跨服 " + runtime.settings().crossServer());
-                    line(sender, "待核对付款：" + count);
-                });
                 case "coins", "credits" -> adjust(sender, action, args);
                 case "grant" -> grant(sender, args);
                 case "import" -> importData(sender, args);
-                case "payments" -> payments(sender, args);
                 default -> help(sender);
             }
         } catch (RuntimeException ex) { runtime.send(sender, Component.text(runtime.describe(ex), NamedTextColor.RED)); }
@@ -163,36 +159,6 @@ public final class DeerTitleCommand implements CommandExecutor, TabCompleter {
         throw new IllegalArgumentException("先执行 /deertitle import miniplayertitle preview，再使用返回的确认码");
     }
 
-    private void payments(CommandSender sender, String[] args) {
-        if (args.length == 1 || (args.length == 2 && args[1].equalsIgnoreCase("list"))) {
-            runtime.commandAsync(sender, () -> runtime.store().unresolvedPayments(50, 0), operations -> {
-                if (operations.isEmpty()) line(sender, "没有待核对付款");
-                operations.stream().limit(50).forEach(p -> line(sender, p.id() + " · " + p.playerId() + " · " + p.state() + " · " + p.amount().toPlainString()));
-                if (operations.size() == 50) line(sender, "当前显示前 50 条，请处理后重新查询");
-                if (!operations.isEmpty()) line(sender, "核对经济插件账单后：/deertitle payments resolve <订单 UUID> <paid|cancel>");
-            });
-            return;
-        }
-        if ((args.length == 4 || (args.length == 5 && args[4].equals("origin-stopped"))) && args[1].equalsIgnoreCase("resolve") && List.of("paid", "cancel").contains(args[3])) {
-            UUID id = UUID.fromString(args[2]);
-            boolean paid = args[3].equals("paid");
-            runtime.commandAsync(sender, () -> {
-                var operation = runtime.store().payment(id).orElseThrow(() -> new IllegalArgumentException("订单不存在"));
-                boolean stopped = args.length == 5;
-                if (operation.state() == cn.lunadeer.deertitle.domain.PaymentState.CHARGING && !stopped)
-                    throw new IllegalArgumentException("扣款结果未知：先停止其他运行 DeerTitle 的子服并核对经济账单，再追加 origin-stopped 确认处理；当前未修改订单");
-                runtime.store().resolvePayment(id, paid, stopped);
-                return runtime.store().payment(id).orElseThrow();
-            }, payment -> {
-                runtime.invalidate(payment.playerId());
-                line(sender, paid ? "已按确认付款发放；未再次扣款" : "已按确认未付款取消；未执行退款");
-                plugin.getLogger().info("付款人工核对：" + id + " -> " + payment.state() + "，执行者 " + owner(sender));
-            });
-            return;
-        }
-        throw new IllegalArgumentException("/deertitle payments list 或 payments resolve <订单 UUID> <paid|cancel>");
-    }
-
     public void expirePreview() { Pending old = pending.get(); if (old != null && !old.expires().isAfter(Instant.now())) pending.compareAndSet(old, null); }
     public void forget(UUID id) {
         synchronized (previewLock) {
@@ -224,17 +190,15 @@ public final class DeerTitleCommand implements CommandExecutor, TabCompleter {
         line(sender, "/deertitle coins|credits <玩家名或 UUID> add|take <数量>");
         line(sender, "/deertitle grant <玩家名或 UUID> <称号 ID>");
         line(sender, "/deertitle import miniplayertitle preview");
-        line(sender, "/deertitle payments list");
     }
     @Override public List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command,
                                                @NotNull String alias, @NotNull String[] args) {
         List<String> choices = new ArrayList<>();
         if (args.length == 1) {
             choices.addAll(List.of("menu", "inventory", "shop", "custom"));
-            if (sender.hasPermission("deertitle.admin")) choices.addAll(List.of("admin", "editor", "status", "coins", "credits", "grant", "import", "payments"));
+            if (sender.hasPermission("deertitle.admin")) choices.addAll(List.of("admin", "editor", "status", "coins", "credits", "grant", "import"));
         } else if (sender.hasPermission("deertitle.admin")) {
             if (args[0].equalsIgnoreCase("import")) choices = args.length == 2 ? List.of("miniplayertitle") : args.length == 3 ? List.of("preview", "confirm") : List.of();
-            else if (args[0].equalsIgnoreCase("payments")) choices = args.length == 2 ? List.of("list", "resolve") : args.length == 4 ? List.of("paid", "cancel") : List.of();
             else if (List.of("coins", "credits").contains(args[0]) && args.length == 3) choices = List.of("add", "take");
         }
         String prefix = args.length == 0 ? "" : args[args.length - 1].toLowerCase(Locale.ROOT);

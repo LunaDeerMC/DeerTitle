@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.function.Consumer;
 
 /**
  * Database-backed payment orchestration, independent of Bukkit and thread ownership.
@@ -15,10 +16,16 @@ import java.util.function.Supplier;
 public final class PaymentCoordinator {
     private final TitleStore store;
     private final Executor executor;
+    private final Consumer<PaymentOperation> reportProviderError;
 
     public PaymentCoordinator(TitleStore store, Executor executor) {
+        this(store, executor, operation -> {});
+    }
+
+    public PaymentCoordinator(TitleStore store, Executor executor, Consumer<PaymentOperation> reportProviderError) {
         this.store = Objects.requireNonNull(store, "store");
         this.executor = Objects.requireNonNull(executor, "executor");
+        this.reportProviderError = Objects.requireNonNull(reportProviderError, "reportProviderError");
     }
 
     public CompletableFuture<Void> settle(CompletableFuture<PaymentOperation> prepared,
@@ -32,12 +39,13 @@ public final class PaymentCoordinator {
                         store.completePayment(operation.id());
                         return null;
                     });
-                    case DECLINED -> submit(() -> {
-                        store.cancelPayment(operation.id(), "provider-declined-or-player-retired");
-                        throw new IllegalArgumentException("付款未完成，请检查余额或经济插件状态");
+                    case DECLINED, ERROR -> submit(() -> {
+                        store.cancelPayment(operation.id(), result == MoneyProvider.Result.ERROR
+                                ? "provider-error" : "provider-declined-or-player-retired");
+                        if (result == MoneyProvider.Result.ERROR) reportProviderError.accept(operation);
+                        throw new IllegalArgumentException(result == MoneyProvider.Result.ERROR
+                                ? "经济插件暂时不可用，本次购买未完成" : "余额不足或付款未完成");
                     });
-                    case UNKNOWN -> CompletableFuture.failedFuture(new IllegalStateException(
-                            "付款结果待核对，请联系管理员；订单 " + operation.id()));
                 }));
     }
 
@@ -46,13 +54,12 @@ public final class PaymentCoordinator {
         CompletableFuture<MoneyProvider.Result> future;
         try {
             future = withdraw.apply(operation);
-        } catch (Throwable failure) {
-            // Even a throwing provider may already have moved money. Never infer rejection.
-            return CompletableFuture.completedFuture(MoneyProvider.Result.UNKNOWN);
+        } catch (RuntimeException failure) {
+            return CompletableFuture.completedFuture(MoneyProvider.Result.ERROR);
         }
-        if (future == null) return CompletableFuture.completedFuture(MoneyProvider.Result.UNKNOWN);
+        if (future == null) return CompletableFuture.completedFuture(MoneyProvider.Result.ERROR);
         return future.handle((result, failure) -> failure == null && result != null
-                ? result : MoneyProvider.Result.UNKNOWN);
+                ? result : MoneyProvider.Result.ERROR);
     }
 
     private <T> CompletableFuture<T> submit(Supplier<T> work) {

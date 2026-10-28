@@ -14,11 +14,11 @@ public final class VaultMoneyProvider implements MoneyProvider {
         if (amount.signum() == 0) return Result.SUCCESS;
         try {
             EconomyResponse response = registration.getProvider().withdrawPlayer(player, amount.doubleValue());
-            if (response == null) return Result.UNKNOWN;
+            if (response == null) return Result.ERROR;
             return response.transactionSuccess() ? Result.SUCCESS : Result.DECLINED;
         } catch (RuntimeException ex) {
-            // A provider may have charged before throwing. Never repeat or refund speculatively.
-            return Result.UNKNOWN;
+            // End this purchase on an invalid response; never automatically repeat a withdrawal.
+            return Result.ERROR;
         }
     }
 

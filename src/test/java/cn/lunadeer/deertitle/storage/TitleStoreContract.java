@@ -193,7 +193,7 @@ abstract class TitleStoreContract {
         fails(INVALID_INPUT, () -> listing(custom, Currency.COINS, 1, null, null));
     }
 
-    @Test void externalPaymentsPersistAmbiguityAndFinalizeExactlyOnce() {
+    @Test void externalPaymentsKeepLiveReservationsAndAutomaticallyFinishRecordedSuccess() {
         ShopListing listing = listing(title(), Currency.VAULT, 5, 1L, 30);
         PaymentOperation prepared = store.prepareShopPayment(player, listing.id(), listing.version());
         assertEquals(1, store.listing(listing.id()).orElseThrow().sold());
@@ -204,28 +204,27 @@ abstract class TitleStoreContract {
         fails(INVALID_PAYMENT_STATE, () -> store.markCharging(prepared.id()));
         TitleStore restarted = new TitleStore(pool, dialect, clock);
         assertEquals(PaymentState.CHARGING, restarted.unresolvedPayments().getFirst().state());
-        // A restart must not repeat withdrawal or silently release the reservation.
+        // A fresh operation on another server is still running; housekeeping leaves it alone.
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), restarted.maintainPayments(100));
         fails(INVALID_PAYMENT_STATE, () -> restarted.completePayment(prepared.id()));
         restarted.markCharged(prepared.id());
         fails(INVALID_PAYMENT_STATE, () -> store.cancelPayment(prepared.id(), "must not cancel money already withdrawn"));
-        restarted.completePayment(prepared.id());
+        assertEquals(new TitleStore.MaintenanceResult(1, 0, 0), restarted.maintainPayments(100));
         restarted.completePayment(prepared.id());
         assertEquals(1, store.inventory(player).size());
         assertEquals(PaymentState.COMPLETE, store.payment(prepared.id()).orElseThrow().state());
         assertTrue(store.unresolvedPayments().isEmpty());
         PaymentOperation credits = store.prepareCreditPayment(player, 3, BigDecimal.ONE);
-        fails(INVALID_PAYMENT_STATE, () -> store.resolvePayment(credits.id(), true));
         store.markCharging(credits.id());
-        fails(INVALID_PAYMENT_STATE, () -> store.resolvePayment(credits.id(), true));
-        fails(INVALID_PAYMENT_STATE, () -> store.resolvePayment(credits.id(), false));
-        // Operator has stopped the originating server and verified payment history.
-        store.resolvePayment(credits.id(), true, true);
-        store.resolvePayment(credits.id(), true);
+        store.markCharged(credits.id());
+        assertEquals(new TitleStore.MaintenanceResult(1, 0, 0), restarted.maintainPayments(100));
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), restarted.maintainPayments(100));
         assertEquals(3, store.profile(player).customCredits());
     }
 
-    @Test void defaultReconciliationCannotRaceLiveWithdrawal() throws Exception {
+    @Test void expirationCannotCancelAnAttemptWhoseChargingTransitionWasJustRefreshed() throws Exception {
         PaymentOperation operation = store.prepareCreditPayment(player, 1, BigDecimal.ONE);
+        clock.advance(Duration.ofMinutes(5));
         CountDownLatch start = new CountDownLatch(1);
         try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
             Future<Boolean> charging = executor.submit(() -> {
@@ -235,8 +234,7 @@ abstract class TitleStoreContract {
             });
             Future<Boolean> cancel = executor.submit(() -> {
                 start.await();
-                try { store.resolvePayment(operation.id(), false); return true; }
-                catch (TitleException e) { assertEquals(INVALID_PAYMENT_STATE, e.code()); return false; }
+                return store.maintainPayments(100).cancelled() == 1;
             });
             start.countDown();
             boolean mayWithdraw = charging.get(30, TimeUnit.SECONDS);
@@ -245,6 +243,118 @@ abstract class TitleStoreContract {
             PaymentState state = store.payment(operation.id()).orElseThrow().state();
             assertEquals(mayWithdraw ? PaymentState.CHARGING : PaymentState.CANCELLED, state);
         }
+    }
+
+    @Test void abandonedReservationsExpireAtFiveMinutesAndReleaseStockOnce() {
+        ShopListing listing = listing(title(), Currency.VAULT, 5, 1L, null);
+        PaymentOperation prepared = store.prepareShopPayment(player, listing.id(), listing.version());
+        clock.advance(Duration.ofSeconds(299));
+        TitleStore restarted = new TitleStore(pool, dialect, clock);
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), restarted.maintainPayments(100));
+        fails(PAYMENT_PENDING, () -> restarted.prepareCreditPayment(player, 1, BigDecimal.ONE));
+        clock.advance(Duration.ofSeconds(1));
+        assertEquals(new TitleStore.MaintenanceResult(0, 1, 0), restarted.maintainPayments(100));
+        assertEquals(PaymentState.CANCELLED, store.payment(prepared.id()).orElseThrow().state());
+        assertEquals(0, store.listing(listing.id()).orElseThrow().sold());
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), restarted.maintainPayments(100));
+        fails(INVALID_PAYMENT_STATE, () -> store.markCharging(prepared.id()));
+
+        PaymentOperation charging = restarted.prepareShopPayment(player, listing.id(), listing.version());
+        restarted.markCharging(charging.id());
+        clock.advance(Duration.ofMinutes(5));
+        assertEquals(new TitleStore.MaintenanceResult(0, 1, 0), store.maintainPayments(100));
+        assertEquals(0, store.listing(listing.id()).orElseThrow().sold());
+        assertTrue(store.inventory(player).isEmpty());
+        // A late provider result after the accepted timeout cannot resurrect the old attempt.
+        fails(INVALID_PAYMENT_STATE, () -> store.markCharged(charging.id()));
+    }
+
+    @Test void paymentExpirationUsesLastTransitionRatherThanCreationTime() {
+        PaymentOperation payment = store.prepareCreditPayment(player, 1, BigDecimal.ONE);
+        clock.advance(Duration.ofSeconds(290));
+        store.markCharging(payment.id());
+        clock.advance(Duration.ofSeconds(299));
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), store.maintainPayments(100));
+        assertEquals(PaymentState.CHARGING, store.payment(payment.id()).orElseThrow().state());
+        clock.advance(Duration.ofSeconds(1));
+        assertEquals(new TitleStore.MaintenanceResult(0, 1, 0), store.maintainPayments(100));
+        assertDoesNotThrow(() -> store.prepareCreditPayment(player, 1, BigDecimal.ONE));
+    }
+
+    @Test void maintenanceAcrossServersDeliversAndReleasesExactlyOnce() throws Exception {
+        ShopListing listing = listing(title(), Currency.VAULT, 5, 1L, null);
+        PaymentOperation abandoned = store.prepareShopPayment(player, listing.id(), listing.version());
+        UUID paidPlayer = UUID.randomUUID();
+        store.ensurePlayer(paidPlayer, "Paid");
+        PaymentOperation paid = store.prepareCreditPayment(paidPlayer, 3, BigDecimal.ONE);
+        store.markCharging(paid.id());
+        store.markCharged(paid.id());
+        clock.advance(Duration.ofMinutes(5));
+        TitleStore other = new TitleStore(pool, dialect, clock);
+        try (ExecutorService executor = Executors.newFixedThreadPool(2)) {
+            CountDownLatch start = new CountDownLatch(1);
+            Future<TitleStore.MaintenanceResult> first = executor.submit(() -> { start.await(); return store.maintainPayments(100); });
+            Future<TitleStore.MaintenanceResult> second = executor.submit(() -> { start.await(); return other.maintainPayments(100); });
+            start.countDown();
+            var a = first.get(30, TimeUnit.SECONDS);
+            var b = second.get(30, TimeUnit.SECONDS);
+            assertEquals(1, a.completed() + b.completed());
+            assertEquals(1, a.cancelled() + b.cancelled());
+            assertEquals(0, a.failed() + b.failed());
+        }
+        assertEquals(PaymentState.CANCELLED, store.payment(abandoned.id()).orElseThrow().state());
+        assertEquals(PaymentState.COMPLETE, store.payment(paid.id()).orElseThrow().state());
+        assertEquals(3, store.profile(paidPlayer).customCredits());
+        assertEquals(0, store.listing(listing.id()).orElseThrow().sold());
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), other.maintainPayments(100));
+    }
+
+    @Test void failedDeliveryDoesNotRollBackOtherRowsOrStarveFollowingWork() {
+        PaymentOperation invalid = store.prepareCreditPayment(player, 1, BigDecimal.ONE);
+        store.markCharging(invalid.id());
+        store.markCharged(invalid.id());
+        store.adjustCredits(player, Integer.MAX_VALUE);
+
+        clock.advance(Duration.ofSeconds(1));
+        UUID waitingPlayer = UUID.randomUUID();
+        store.ensurePlayer(waitingPlayer, "Waiting");
+        PaymentOperation abandoned = store.prepareCreditPayment(waitingPlayer, 1, BigDecimal.ONE);
+        clock.advance(Duration.ofSeconds(1));
+        UUID paidPlayer = UUID.randomUUID();
+        store.ensurePlayer(paidPlayer, "Paid");
+        PaymentOperation paid = store.prepareCreditPayment(paidPlayer, 2, BigDecimal.ONE);
+        store.markCharging(paid.id());
+        store.markCharged(paid.id());
+        clock.advance(Duration.ofMinutes(5));
+
+        assertEquals(new TitleStore.MaintenanceResult(1, 1, 1), store.maintainPayments(100));
+        assertEquals(PaymentState.CHARGED, store.payment(invalid.id()).orElseThrow().state());
+        assertEquals(PaymentState.CANCELLED, store.payment(abandoned.id()).orElseThrow().state());
+        assertEquals(PaymentState.COMPLETE, store.payment(paid.id()).orElseThrow().state());
+        assertEquals(2, store.profile(paidPlayer).customCredits());
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), store.maintainPayments(100));
+        store.adjustCredits(player, -1);
+        clock.advance(Duration.ofSeconds(29));
+        assertEquals(new TitleStore.MaintenanceResult(0, 0, 0), store.maintainPayments(100));
+        clock.advance(Duration.ofSeconds(1));
+        assertEquals(new TitleStore.MaintenanceResult(1, 0, 0), store.maintainPayments(100));
+        assertEquals(Integer.MAX_VALUE, store.profile(player).customCredits());
+    }
+
+    @Test void maintenanceProcessesOnlyItsBoundedBatch() {
+        for (int i = 0; i < 3; i++) {
+            UUID owner = UUID.randomUUID();
+            store.ensurePlayer(owner, "Pending" + i);
+            store.prepareCreditPayment(owner, 1, BigDecimal.ONE);
+        }
+        clock.advance(Duration.ofMinutes(5));
+        assertEquals(new TitleStore.MaintenanceResult(0, 1, 0), store.maintainPayments(1));
+        assertEquals(2, store.unresolvedPaymentCount());
+        assertEquals(new TitleStore.MaintenanceResult(0, 1, 0), store.maintainPayments(1));
+        assertEquals(1, store.unresolvedPaymentCount());
+        assertEquals(new TitleStore.MaintenanceResult(0, 1, 0), store.maintainPayments(1));
+        fails(INVALID_INPUT, () -> store.maintainPayments(0));
+        fails(INVALID_INPUT, () -> store.maintainPayments(101));
     }
 
     @Test void definiteFailedPaymentReleasesOnlyItsReservation() {

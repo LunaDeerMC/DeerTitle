@@ -1,192 +1,127 @@
 {
-  "created_at": "2026-10-28T09:54:41.118154+08:00",
+  "created_at": "2026-10-28T10:14:54.111252+08:00",
+  "scope": "Focused regression for simplified Vault result handling and automatic payment maintenance; earlier full version matrix was not rerun.",
+  "platforms": [
+    {
+      "server": "paper-26.1.1-4",
+      "ui_passed": true,
+      "ui_checks": [
+        "duplicate_callback_one_successful_withdrawal",
+        "returned_decline_is_failure",
+        "null_response_is_failure",
+        "exception_is_failure_without_automatic_retry",
+        "next_purchase_allowed_after_exception",
+        "declined_shop_purchase_releases_stock_and_replay_does_not_charge_twice",
+        "manual_reconciliation_not_advertised"
+      ],
+      "wallet_calls": 7,
+      "player_payment_states": {
+        "CANCELLED": 4,
+        "COMPLETE": 3
+      },
+      "player_pending_payments": 0,
+      "stock_sold": 1,
+      "maintenance_startup_states": {
+        "prepared": "CANCELLED",
+        "charging": "CANCELLED",
+        "charged": "COMPLETE",
+        "fresh": "CHARGING"
+      },
+      "maintenance_periodic_states": {
+        "prepared": "CANCELLED",
+        "charging": "CANCELLED",
+        "charged": "COMPLETE"
+      },
+      "maintenance_wait_seconds": 29.62,
+      "maintenance_no_wallet_calls": true,
+      "successful_debits": 4,
+      "custom_credits": 3,
+      "maintenance_known_charged_deliveries": 2,
+      "maintenance_stale_reservations_released": 4
+    },
+    {
+      "server": "folia-26.1.2-8",
+      "ui_passed": true,
+      "ui_checks": [
+        "duplicate_callback_one_successful_withdrawal",
+        "returned_decline_is_failure",
+        "null_response_is_failure",
+        "exception_is_failure_without_automatic_retry",
+        "next_purchase_allowed_after_exception",
+        "declined_shop_purchase_releases_stock_and_replay_does_not_charge_twice",
+        "manual_reconciliation_not_advertised"
+      ],
+      "wallet_calls": 7,
+      "player_payment_states": {
+        "CANCELLED": 4,
+        "COMPLETE": 3
+      },
+      "player_pending_payments": 0,
+      "stock_sold": 1,
+      "maintenance_startup_states": {
+        "prepared": "CANCELLED",
+        "charging": "CANCELLED",
+        "charged": "COMPLETE",
+        "fresh": "CHARGING"
+      },
+      "maintenance_periodic_states": {
+        "prepared": "CANCELLED",
+        "charging": "CANCELLED",
+        "charged": "COMPLETE"
+      },
+      "maintenance_wait_seconds": 29.87,
+      "maintenance_no_wallet_calls": true,
+      "successful_debits": 4,
+      "custom_credits": 3,
+      "maintenance_known_charged_deliveries": 2,
+      "maintenance_stale_reservations_released": 4
+    }
+  ],
+  "external_project_gradle_tests": [
+    {
+      "database": "postgresql",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "version": "17.11"
+    },
+    {
+      "database": "mysql",
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0,
+      "version": "8.4.13"
+    }
+  ],
+  "provider": "Bounded local fixture implementing actual VaultAPI1.7; includes decline, null response, exception after debit.",
+  "exception_after_debit_policy": "Treated as failed and cancelled; no automatic retry or refund. A subsequent explicit purchase succeeds.",
+  "cleanup": {
+    "test_server_jvms_running": 0,
+    "test_db_containers_running": 0,
+    "files_and_reports_retained": true
+  },
   "artifact": {
     "path": "build/libs/DeerTitle-1.0.0-SNAPSHOT.jar",
-    "sha256": "959fd3aefcdc3de2787e840b94d09fb661104bc0206529ff899f8fd54cd159ab",
-    "java": "25"
+    "sha256": "124d309a5906a6f52bad47c3882dc036be1ea3060609a7baf6373e3802dadf06",
+    "java": "25",
+    "gradle": "9.4.1"
   },
-  "server_matrix": {
-    "combinations_passed": 9,
-    "paper_folia_versions_passed": 7,
-    "details": [
-      {
-        "server": "paper-26.1.1-4",
-        "database": "sqlite",
-        "exit_code": 0,
-        "seconds": 18.85,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "paper-26.1.2-74",
-        "database": "sqlite",
-        "exit_code": 0,
-        "seconds": 18.57,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "paper-26.2-135",
-        "database": "sqlite",
-        "exit_code": 0,
-        "seconds": 17.24,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "paper-26.3-227",
-        "database": "sqlite",
-        "exit_code": 0,
-        "seconds": 18.18,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "folia-26.1.2-8",
-        "database": "sqlite",
-        "exit_code": 0,
-        "seconds": 15.61,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "folia-26.2-7",
-        "database": "sqlite",
-        "exit_code": 0,
-        "seconds": 15.39,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "folia-26.3-5",
-        "database": "sqlite",
-        "exit_code": 0,
-        "seconds": 16.94,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "paper-26.3-227",
-        "database": "pgsql",
-        "exit_code": 0,
-        "seconds": 19.17,
-        "imports_completed": 2,
-        "source_unchanged": true
-      },
-      {
-        "server": "paper-26.3-227",
-        "database": "mysql",
-        "exit_code": 0,
-        "seconds": 15.24,
-        "imports_completed": 2,
-        "source_unchanged": true
-      }
-    ],
-    "each_checks": [
-      "enable",
-      "status",
-      "payment-list",
-      "synthetic-MiniPlayerTitle-preview-confirm-twice",
-      "source-database-SHA256-unchanged",
-      "clean-stop"
-    ]
+  "default_gradle_tests": {
+    "total": 90,
+    "passed": 70,
+    "external_conditional_skipped": 20,
+    "failed": 0
   },
-  "native_dialog_e2e": {
-    "suites_passed": 2,
-    "required_page_types_covered": 7,
-    "placeholder_api": "2.12.3",
-    "details": [
-      {
-        "server": "paper-26.1.1-4",
-        "passed": true
-      },
-      {
-        "server": "folia-26.1.2-8",
-        "passed": true
-      }
-    ],
-    "checks": [
-      "empty-inventory-and-shop",
-      "insufficient-funds-notice-and-return",
-      "buy-custom-credits",
-      "gradient-preview-and-color-pickers",
-      "create-and-edit-consume-one-credit-each",
-      "equip-and-unequip",
-      "real-PlaceholderAPI-display",
-      "admin-title-create",
-      "limited-and-timed-listing",
-      "duplicate-callback-single-charge",
-      "unlist-and-unlimited-settings"
-    ]
-  },
-  "vault": {
-    "real_adapter_with_synthetic_provider": true,
-    "positive_and_failure_ui_flow_passed": true,
-    "unavailable_provider_startup_passed": true,
-    "payment_states": {
-      "CANCELLED": 1,
-      "CHARGING": 1,
-      "COMPLETE": 1
-    },
-    "wallet": {
-      "balance": 700,
-      "withdraw-calls": 3,
-      "successful-debits": 2,
-      "total-debited": 300
-    },
-    "no_real_economy_service_used": true
-  },
-  "cross_server": {
-    "passed": true,
-    "servers": [
-      "paper-26.1.1-4",
-      "folia-26.1.2-8"
-    ],
-    "database": "PostgreSQL 17.11",
-    "refresh_seconds": 3,
-    "checks": [
-      "coins_refresh_from_paper_to_folia",
-      "title_equipment_and_credits_refresh_to_folia",
-      "unequip_refresh_from_folia_to_paper"
-    ]
-  },
-  "project_gradle_external_contracts": {
-    "postgresql": {
-      "version": "17.11",
-      "passed": 15,
-      "failed": 0,
-      "skipped": 0
-    },
-    "mysql": {
-      "version": "8.4.13",
-      "passed": 15,
-      "failed": 0,
-      "skipped": 0
-    }
-  },
-  "mysql_cold_auth": {
-    "default_public_key_retrieval_false_rejected": true,
-    "explicit_local_opt_in_true_connected": true
-  },
-  "fixed_during_real_ui_testing": [
-    "Asynchronous failure must replace WAIT_FOR_RESPONSE with error notice",
-    "Native Dialog input IDs use underscores instead of hyphens"
-  ],
-  "cleanup": {
-    "temporary_test_server_jvms_running": 0,
-    "test_database_containers_running": 0,
-    "test_files_and_reports_retained": true
+  "baseline": {
+    "commit": "deb7822ce18d6213bbdd45005fdb880066731af1",
+    "artifact_sha256": "959fd3aefcdc3de2787e840b94d09fb661104bc0206529ff899f8fd54cd159ab",
+    "validation_url": "https://github.com/LunaDeerMC/DeerTitle/blob/deb7822ce18d6213bbdd45005fdb880066731af1/docs/validation-results.json",
+    "server_matrix_combinations_passed": 9,
+    "full_matrix_rerun_for_current_artifact": false
   },
   "limits": [
-    "Native Dialog packet/control flows tested with headless clients; no graphical Minecraft screenshots or human layout review.",
-    "Full game-client UI flows covered Paper26.1.1 andFolia26.1.2; other listed versions have realstartup/importsmokes.",
-    "Vault provider was a bounded local testfixture implementing realVaultAPI; third-party providers still need their ownFolia/cross-server compatibility.",
-    "Compatibility with unreleased futureMinecraft/Paper versions is not proven."
-  ],
-  "default_gradle_tests": {
-    "discovered": 79,
-    "passed": 64,
-    "conditional_external_skipped": 15,
-    "failed": 0
-  }
+    "Headless protocol clients verify API and Dialog behavior, not graphical layout.",
+    "The synthetic Vault provider does not certify third-party economy plugins.",
+    "No production workload or unreleased future Minecraft/Paper version is covered."
+  ]
 }

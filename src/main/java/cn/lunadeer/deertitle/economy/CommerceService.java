@@ -11,7 +11,7 @@ import java.util.function.Supplier;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
-/** Durable intent precedes external money movement; ambiguous charges require reconciliation. */
+/** Reserve stock, call Vault once, then use its result to finish the purchase. */
 public final class CommerceService {
     private final JavaPlugin plugin;
     private final TitleStore store;
@@ -22,7 +22,9 @@ public final class CommerceService {
 
     public CommerceService(JavaPlugin plugin, TitleStore store, Executor executor, Settings settings, MoneyProvider provider) {
         this.plugin = plugin; this.store = store; this.executor = executor; this.settings = settings; this.provider = provider;
-        this.coordinator = new PaymentCoordinator(store, executor);
+        this.coordinator = new PaymentCoordinator(store, executor, operation -> plugin.getLogger().warning(
+                "经济接口未返回有效结果，本次购买已取消：玩家 " + operation.playerId() + "，订单 " + operation.id()
+                        + "。未自动重复扣款。"));
     }
 
     public CompletableFuture<Void> purchase(Player player, long listingId, long expectedVersion) {
@@ -58,7 +60,7 @@ public final class CommerceService {
                     return;
                 }
                 try { result.complete(provider.withdraw(player, operation.amount())); }
-                catch (RuntimeException ex) { result.complete(MoneyProvider.Result.UNKNOWN); }
+                catch (RuntimeException ex) { result.complete(MoneyProvider.Result.ERROR); }
             }, () -> result.complete(MoneyProvider.Result.DECLINED));
             if (task == null) result.complete(MoneyProvider.Result.DECLINED);
         } catch (RuntimeException ex) { result.complete(MoneyProvider.Result.DECLINED); }

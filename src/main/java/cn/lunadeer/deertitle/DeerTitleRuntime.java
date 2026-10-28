@@ -38,6 +38,8 @@ public final class DeerTitleRuntime implements UiAccess, Listener, AutoCloseable
     private final FormattedTitle emptyDisplay;
     private final DialogUi ui;
     private ScheduledTask refreshTask;
+    private ScheduledTask paymentMaintenanceTask;
+    private final java.util.concurrent.atomic.AtomicBoolean maintainingPayments = new java.util.concurrent.atomic.AtomicBoolean();
     private volatile boolean closed;
     private volatile long lastFailureLog;
 
@@ -60,6 +62,18 @@ public final class DeerTitleRuntime implements UiAccess, Listener, AutoCloseable
             cache.online().forEach(this::refresh);
             if (plugin.commands() != null) plugin.commands().expirePreview();
         }, 1, settings.refreshSeconds(), TimeUnit.SECONDS);
+        maintainPayments();
+        paymentMaintenanceTask = Bukkit.getAsyncScheduler().runAtFixedRate(plugin,
+                ignored -> maintainPayments(), 30, 30, TimeUnit.SECONDS);
+    }
+
+    private void maintainPayments() {
+        if (closed || !maintainingPayments.compareAndSet(false, true)) return;
+        submit(() -> store.maintainPayments(100)).whenComplete((result, failure) -> {
+            maintainingPayments.set(false);
+            if (failure != null) logFailure(failure);
+            else if (result.failed() > 0) logFailure(new IllegalStateException("付款发放暂未完成"));
+        });
     }
 
     @EventHandler public void onJoin(PlayerJoinEvent event) { register(event.getPlayer()); }
@@ -206,10 +220,10 @@ public final class DeerTitleRuntime implements UiAccess, Listener, AutoCloseable
             case OUT_OF_STOCK -> "此称号已售罄";
             case STALE_VERSION -> "内容已更新，请刷新后再操作";
             case INVALID_INPUT -> "输入内容或数值无效";
-            case PAYMENT_PENDING -> "你有一笔待核对的付款，请联系管理员";
-            case INVALID_PAYMENT_STATE -> "订单状态不允许此操作，请先核对订单";
+            case PAYMENT_PENDING -> "上一笔购买正在处理，请稍后再试";
+            case INVALID_PAYMENT_STATE -> "这次购买已处理，请刷新页面";
             case IMPORT_CONFLICT -> "导入来源与现有记录冲突，未修改数据";
-            case STORAGE_FAILURE -> { logFailure(cause); yield "数据库操作失败，未确认的付款请联系管理员核对"; }
+            case STORAGE_FAILURE -> { logFailure(cause); yield "服务暂时不可用，请稍后再试"; }
         };
         if (cause instanceof RejectedExecutionException) return "当前操作较多，请稍后重试";
         if (cause instanceof IllegalArgumentException || cause instanceof IllegalStateException)
@@ -229,6 +243,7 @@ public final class DeerTitleRuntime implements UiAccess, Listener, AutoCloseable
     @Override public void close() {
         closed = true;
         if (refreshTask != null) refreshTask.cancel();
+        if (paymentMaintenanceTask != null) paymentMaintenanceTask.cancel();
         ui.close();
         cache.clear();
         executor.shutdown();
