@@ -1,0 +1,24 @@
+name: DeerTitle
+version: '${version}'
+main: cn.lunadeer.deertitle.DeerTitlePlugin
+api-version: '26.1'
+folia-supported: true
+description: 跨服称号、可视化编辑器和称号商店
+author: LunaDeer
+website: https://github.com/LunaDeerMC/DeerTitle
+softdepend: [Vault, PlaceholderAPI]
+commands:
+  deertitle:
+    description: 打开称号菜单
+    aliases: [dt]
+    usage: /deertitle
+permissions:
+  deertitle.use:
+    description: 使用称号菜单、背包和商店
+    default: true
+  deertitle.custom:
+    description: 创建和编辑自己的自定义称号
+    default: true
+  deertitle.admin:
+    description: 管理称号、商店、余额和导入
+    default: op

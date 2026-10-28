@@ -1,0 +1,55 @@
+# 所有带颜色的文字使用 MiniMessage。
+database:
+  # sqlite、pgsql、mysql；跨服必须选择 pgsql 或 mysql。
+  type: sqlite
+  sqlite-file: deertitle.db
+  host: localhost
+  port: 5432
+  name: deertitle
+  username: deertitle
+  password: ''
+  ssl: false
+  # MySQL 非 TLS 连接如需首次取得 RSA 公钥，可在信任的网络上显式开启。
+  allow-public-key-retrieval: false
+  pool-size: 4
+  connection-timeout-seconds: 10
+
+cross-server:
+  enabled: false
+  # 在线玩家缓存刷新间隔；所有购买和装备检查均直接以数据库为准。
+  refresh-seconds: 3
+
+economy:
+  # coins 或 vault；统一用于称号商店及购买自定义次数。
+  # vault 需要另外安装 Vault 和兼容当前服务端的经济插件。
+  mode: coins
+  # 留空时 coins 显示“称号币”，vault 显示“金币”。
+  currency-name: ''
+
+custom-title:
+  price-per-credit: '100'
+  max-credits-per-purchase: 100
+  max-visible-length: 24
+  max-source-length: 1024
+
+display:
+  time-zone: Asia/Shanghai
+  prefix: ''
+  suffix: ''
+  empty-title: ''
+  # legacy 适用于常见聊天、Tab 插件；另外提供 _minimessage 和 _plain 占位符。
+  placeholder-format: legacy
+
+import:
+  mini-player-title:
+    source-directory: plugins/MiniPlayerTitle
+    # 此标识一旦执行导入后请勿更改，否则会被视为另一份来源。
+    source-id: mini-player-title-main
+    source-time-zone: Asia/Shanghai
+    # reject 拒绝将带小数的旧内部余额转换为整数称号币；也可显式选择 floor / round-half-up。
+    fractional-coins: reject
+    include-shop: true
+
+runtime:
+  database-threads: 2
+  database-queue-capacity: 256

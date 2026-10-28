@@ -1,0 +1,10 @@
+.gradle/
+build/
+.idea/
+*.iml
+.local-test/
+.env
+*.db
+*.db-shm
+*.db-wal
+logs/

@@ -1,0 +1,192 @@
+{
+  "created_at": "2026-10-28T09:54:41.118154+08:00",
+  "artifact": {
+    "path": "build/libs/DeerTitle-1.0.0-SNAPSHOT.jar",
+    "sha256": "959fd3aefcdc3de2787e840b94d09fb661104bc0206529ff899f8fd54cd159ab",
+    "java": "25"
+  },
+  "server_matrix": {
+    "combinations_passed": 9,
+    "paper_folia_versions_passed": 7,
+    "details": [
+      {
+        "server": "paper-26.1.1-4",
+        "database": "sqlite",
+        "exit_code": 0,
+        "seconds": 18.85,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "paper-26.1.2-74",
+        "database": "sqlite",
+        "exit_code": 0,
+        "seconds": 18.57,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "paper-26.2-135",
+        "database": "sqlite",
+        "exit_code": 0,
+        "seconds": 17.24,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "paper-26.3-227",
+        "database": "sqlite",
+        "exit_code": 0,
+        "seconds": 18.18,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "folia-26.1.2-8",
+        "database": "sqlite",
+        "exit_code": 0,
+        "seconds": 15.61,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "folia-26.2-7",
+        "database": "sqlite",
+        "exit_code": 0,
+        "seconds": 15.39,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "folia-26.3-5",
+        "database": "sqlite",
+        "exit_code": 0,
+        "seconds": 16.94,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "paper-26.3-227",
+        "database": "pgsql",
+        "exit_code": 0,
+        "seconds": 19.17,
+        "imports_completed": 2,
+        "source_unchanged": true
+      },
+      {
+        "server": "paper-26.3-227",
+        "database": "mysql",
+        "exit_code": 0,
+        "seconds": 15.24,
+        "imports_completed": 2,
+        "source_unchanged": true
+      }
+    ],
+    "each_checks": [
+      "enable",
+      "status",
+      "payment-list",
+      "synthetic-MiniPlayerTitle-preview-confirm-twice",
+      "source-database-SHA256-unchanged",
+      "clean-stop"
+    ]
+  },
+  "native_dialog_e2e": {
+    "suites_passed": 2,
+    "required_page_types_covered": 7,
+    "placeholder_api": "2.12.3",
+    "details": [
+      {
+        "server": "paper-26.1.1-4",
+        "passed": true
+      },
+      {
+        "server": "folia-26.1.2-8",
+        "passed": true
+      }
+    ],
+    "checks": [
+      "empty-inventory-and-shop",
+      "insufficient-funds-notice-and-return",
+      "buy-custom-credits",
+      "gradient-preview-and-color-pickers",
+      "create-and-edit-consume-one-credit-each",
+      "equip-and-unequip",
+      "real-PlaceholderAPI-display",
+      "admin-title-create",
+      "limited-and-timed-listing",
+      "duplicate-callback-single-charge",
+      "unlist-and-unlimited-settings"
+    ]
+  },
+  "vault": {
+    "real_adapter_with_synthetic_provider": true,
+    "positive_and_failure_ui_flow_passed": true,
+    "unavailable_provider_startup_passed": true,
+    "payment_states": {
+      "CANCELLED": 1,
+      "CHARGING": 1,
+      "COMPLETE": 1
+    },
+    "wallet": {
+      "balance": 700,
+      "withdraw-calls": 3,
+      "successful-debits": 2,
+      "total-debited": 300
+    },
+    "no_real_economy_service_used": true
+  },
+  "cross_server": {
+    "passed": true,
+    "servers": [
+      "paper-26.1.1-4",
+      "folia-26.1.2-8"
+    ],
+    "database": "PostgreSQL 17.11",
+    "refresh_seconds": 3,
+    "checks": [
+      "coins_refresh_from_paper_to_folia",
+      "title_equipment_and_credits_refresh_to_folia",
+      "unequip_refresh_from_folia_to_paper"
+    ]
+  },
+  "project_gradle_external_contracts": {
+    "postgresql": {
+      "version": "17.11",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    "mysql": {
+      "version": "8.4.13",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "mysql_cold_auth": {
+    "default_public_key_retrieval_false_rejected": true,
+    "explicit_local_opt_in_true_connected": true
+  },
+  "fixed_during_real_ui_testing": [
+    "Asynchronous failure must replace WAIT_FOR_RESPONSE with error notice",
+    "Native Dialog input IDs use underscores instead of hyphens"
+  ],
+  "cleanup": {
+    "temporary_test_server_jvms_running": 0,
+    "test_database_containers_running": 0,
+    "test_files_and_reports_retained": true
+  },
+  "limits": [
+    "Native Dialog packet/control flows tested with headless clients; no graphical Minecraft screenshots or human layout review.",
+    "Full game-client UI flows covered Paper26.1.1 andFolia26.1.2; other listed versions have realstartup/importsmokes.",
+    "Vault provider was a bounded local testfixture implementing realVaultAPI; third-party providers still need their ownFolia/cross-server compatibility.",
+    "Compatibility with unreleased futureMinecraft/Paper versions is not proven."
+  ],
+  "default_gradle_tests": {
+    "discovered": 79,
+    "passed": 64,
+    "conditional_external_skipped": 15,
+    "failed": 0
+  }
+}
