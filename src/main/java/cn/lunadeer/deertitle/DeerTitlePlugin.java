@@ -37,7 +37,7 @@ public final class DeerTitlePlugin extends JavaPlugin {
                 money = new VaultMoneyProvider();
             }
             pool = DatabaseFactory.create(settings.database());
-            store = new TitleStore(pool, SqlDialect.parse(settings.database().type()));
+            store = new TitleStore(pool, SqlDialect.parse(settings.database().type()), settings.initialCoinsForNewPlayer());
             store.initialize();
             runtime = new DeerTitleRuntime(this, settings, store, money);
             commands = new DeerTitleCommand(this, runtime);

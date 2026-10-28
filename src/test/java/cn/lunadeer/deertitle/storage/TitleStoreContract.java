@@ -111,6 +111,53 @@ abstract class TitleStoreContract {
         assertTrue(store.equippedTitle(player).isEmpty());
     }
 
+    @Test void initialCoinsAreAtomicAcrossServersAndNeverReissued() throws Exception {
+        UUID newcomer = UUID.randomUUID();
+        TitleStore first = new TitleStore(pool, dialect, clock, 100);
+        try (HikariDataSource secondPool = dataSource(); ExecutorService executor = Executors.newFixedThreadPool(8)) {
+            TitleStore second = new TitleStore(secondPool, dialect, clock, 100);
+            CountDownLatch start = new CountDownLatch(1);
+            List<Future<?>> joins = new ArrayList<>();
+            for (int i = 0; i < 24; i++) {
+                TitleStore server = i % 2 == 0 ? first : second;
+                joins.add(executor.submit(() -> { start.await(); server.ensurePlayer(newcomer, "NewPlayer"); return null; }));
+            }
+            start.countDown();
+            for (Future<?> join : joins) join.get(30, TimeUnit.SECONDS);
+            assertEquals(100, first.profile(newcomer).coins());
+            assertEquals(100, second.ensurePlayer(newcomer, "Renamed").coins());
+        }
+        TitleStore changedConfig = new TitleStore(pool, dialect, clock, 200);
+        assertEquals(100, changedConfig.ensurePlayer(newcomer, "Renamed").coins());
+        assertEquals(0, changedConfig.ensurePlayer(player, "Alice").coins()); // Existing 1.0.1 account.
+        UUID offline = UUID.randomUUID();
+        changedConfig.adjustCoins(offline, 5); // Offline administration also creates an account only once.
+        assertEquals(205, changedConfig.ensurePlayer(offline, "OfflinePlayer").coins());
+        changedConfig.adjustCredits(offline, 1);
+        assertEquals(205, changedConfig.profile(offline).coins());
+        assertEquals(200, changedConfig.ensurePlayer(UUID.randomUUID(), "OtherNewPlayer").coins());
+    }
+
+    @Test void migrationNeverAddsSignupCoinsAndPreservesUsedNativeBalances() {
+        TitleStore gifts = new TitleStore(pool, dialect, clock, 100);
+        UUID fresh = UUID.randomUUID(), empty = UUID.randomUUID(), joined = UUID.randomUUID(), used = UUID.randomUUID();
+        gifts.ensurePlayer(joined, "Joined");
+        gifts.ensurePlayer(used, "Used");
+        gifts.adjustCoins(used, -30);
+        TitleStore changedConfig = new TitleStore(pool, dialect, clock, 200);
+        var batch = new ImportBatch("initial-coins-source", Currency.COINS, List.of(),
+                List.of(new ImportPlayer(fresh, "Fresh", 37L, null), new ImportPlayer(empty, "Empty", 0L, null),
+                        new ImportPlayer(joined, "Joined", 37L, null), new ImportPlayer(used, "Used", 37L, null)),
+                List.of(), List.of());
+        changedConfig.importData(batch);
+        assertEquals(37, changedConfig.ensurePlayer(fresh, "Fresh").coins());
+        assertEquals(0, changedConfig.ensurePlayer(empty, "Empty").coins());
+        assertEquals(37, changedConfig.profile(joined).coins()); // Replace unused initialization, even after config change.
+        assertEquals(107, changedConfig.profile(used).coins()); // Keep genuinely changed native balance + source balance.
+        assertEquals(new ImportReport(0, 0, 0, 0, 4), changedConfig.importData(batch));
+        assertEquals(37, changedConfig.profile(joined).coins());
+    }
+
     @Test void remainingStockEditRejectsSalesSinceTheAdminOpenedTheForm() {
         ShopListing original = listing(title(), Currency.COINS, 10, 10L, null);
         store.adjustCoins(player, 10);

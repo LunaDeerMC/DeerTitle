@@ -50,6 +50,18 @@ class LegacyTextConverterTest {
     }
 
     @Test
+    void literalAngleBracketsPreserveEmbeddedLegacyRgbAndCannotBecomeActiveTags() {
+        String converted = LegacyTextConverter.convert("&#ffffff[<&#F06292春&#8AFF33日&#339BFF鹿>]");
+        assertEquals("[<春日鹿>]", TitleText.plain(converted));
+        var glyphs = TitleTextTest.glyphs(TitleText.parse(converted));
+        assertEquals(List.of(0xffffff, 0xffffff, 0xf06292, 0x8aff33, 0x339bff, 0x339bff, 0x339bff),
+                glyphs.stream().map(TitleTextTest.Glyph::color).toList());
+        String action = LegacyTextConverter.convert("<click:run_command:'&a/op test'>鹿</click>");
+        assertEquals("<click:run_command:'/op test'>鹿</click>", TitleText.plain(action));
+        TitleTextTest.assertNoActions(TitleText.parse(action));
+    }
+
+    @Test
     void preservesPlainPunctuationBackslashesAndSupplementaryCharacters() {
         for (String plain : List.of("A & Z", "C:\\files\\鹿", "🦌鹿", "##nohex", "&x&1&2", "")) {
             assertEquals(plain, TitleText.plain(LegacyTextConverter.convert(plain)));

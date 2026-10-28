@@ -10,7 +10,7 @@ import java.time.ZoneId;
 import java.util.Locale;
 
 public record Settings(Database database, boolean crossServer, int refreshSeconds,
-                       Currency currency, String currencyName, BigDecimal creditPrice,
+                       Currency currency, String currencyName, long initialCoins, BigDecimal creditPrice,
                        int maxCreditsPerPurchase, int maxVisibleLength, int maxSourceLength,
                        String prefix, String suffix, String emptyTitle, String placeholderFormat, ZoneId displayTimeZone,
                        Path importDirectory, String importSourceId, ZoneId importTimeZone,
@@ -21,7 +21,10 @@ public record Settings(Database database, boolean crossServer, int refreshSecond
     }
 
     public static Settings load(JavaPlugin plugin) {
-        FileConfiguration c = plugin.getConfig();
+        return load(plugin.getConfig(), plugin.getDataFolder().toPath());
+    }
+
+    public static Settings load(FileConfiguration c, Path dataDirectory) {
         String type = c.getString("database.type", "sqlite").toLowerCase(Locale.ROOT);
         if (!java.util.Set.of("sqlite", "pgsql", "mysql").contains(type))
             throw new IllegalArgumentException("database.type 必须为 sqlite、pgsql 或 mysql");
@@ -34,13 +37,21 @@ public record Settings(Database database, boolean crossServer, int refreshSecond
             case "vault" -> Currency.VAULT;
             default -> throw new IllegalArgumentException("economy.mode 必须为 coins 或 vault");
         };
+        long initialCoins;
+        try {
+            initialCoins = new BigDecimal(c.getString("economy.initial-coins", "0")).longValueExact();
+        } catch (NumberFormatException | ArithmeticException ex) {
+            throw new IllegalArgumentException("economy.initial-coins 必须为 0–1000000000000 的整数");
+        }
+        if (initialCoins < 0 || initialCoins > 1_000_000_000_000L)
+            throw new IllegalArgumentException("economy.initial-coins 必须为 0–1000000000000 的整数");
         BigDecimal creditPrice;
         try { creditPrice = new BigDecimal(c.getString("custom-title.price-per-credit", "100")).stripTrailingZeros(); }
         catch (NumberFormatException ex) { throw new IllegalArgumentException("自定义次数价格必须是数字"); }
         if (creditPrice.signum() < 0 || creditPrice.compareTo(new BigDecimal("1000000000")) > 0
                 || creditPrice.scale() > (currency == Currency.COINS ? 0 : 2))
             throw new IllegalArgumentException("自定义次数价格必须非负；称号币为整数，Vault 最多两位小数");
-        Path data = plugin.getDataFolder().toPath().toAbsolutePath().normalize();
+        Path data = dataDirectory.toAbsolutePath().normalize();
         Path sqlite = data.resolve(c.getString("database.sqlite-file", "deertitle.db")).normalize();
         if (!sqlite.startsWith(data) || sqlite.equals(data))
             throw new IllegalArgumentException("database.sqlite-file 必须位于插件数据目录内");
@@ -65,7 +76,7 @@ public record Settings(Database database, boolean crossServer, int refreshSecond
         String currencyName = c.getString("economy.currency-name", "").trim();
         if (currencyName.isEmpty()) currencyName = currency == Currency.COINS ? "称号币" : "金币";
         return new Settings(db, crossServer, bounded(c, "cross-server.refresh-seconds", 3, 1, 300),
-                currency, currencyName,
+                currency, currencyName, initialCoins,
                 creditPrice, bounded(c, "custom-title.max-credits-per-purchase", 100, 1, 10000),
                 bounded(c, "custom-title.max-visible-length", 24, 1, 256),
                 bounded(c, "custom-title.max-source-length", 1024, 32, 8192),
@@ -77,6 +88,9 @@ public record Settings(Database database, boolean crossServer, int refreshSecond
                 bounded(c, "runtime.database-threads", 2, 1, 16),
                 bounded(c, "runtime.database-queue-capacity", 256, 16, 4096));
     }
+
+    /** Vault balances belong to the economy provider; this setting only grants internal coins. */
+    public long initialCoinsForNewPlayer() { return currency == Currency.COINS ? initialCoins : 0; }
 
     private static int bounded(FileConfiguration c, String key, int fallback, int min, int max) {
         int value = c.getInt(key, fallback);

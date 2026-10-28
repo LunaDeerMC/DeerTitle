@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "cn.lunadeer"
-version = providers.gradleProperty("releaseVersion").orElse("1.0.1-SNAPSHOT").get()
+version = providers.gradleProperty("releaseVersion").orElse("1.0.2-SNAPSHOT").get()
 
 // Full bundles these libraries; Lite delegates resolution and caching to Paper/Folia.
 val pluginLibraries = listOf(

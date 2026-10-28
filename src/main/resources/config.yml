@@ -25,6 +25,9 @@ economy:
   mode: coins
   # 留空时 coins 显示“称号币”，vault 显示“金币”。
   currency-name: ''
+  # coins 模式首次创建账户时赠送一次；0 禁用。整数范围 0–1000000000000。
+  # 不补发已有账户，不叠加旧库导入余额；vault 模式忽略此项。
+  initial-coins: 0
 
 custom-title:
   price-per-credit: '100'

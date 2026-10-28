@@ -34,8 +34,8 @@ DeerTitle 使用独立数据库结构，可通过管理员命令从 MiniPlayerTi
 
 | 版本 | 文件 | 依赖方式 |
 | --- | --- | --- |
-| Lite（推荐） | `DeerTitle-1.0.1-SNAPSHOT-lite.jar`，约 182 KiB | 首次启动由服务器下载数据库驱动和连接池，缓存到服务端的 `libraries/`，以后复用 |
-| Full | `DeerTitle-1.0.1-SNAPSHOT-full.jar`，约 19.6 MiB | JAR 内附带上述依赖，适合无法下载依赖的服务器 |
+| Lite（推荐） | `DeerTitle-1.0.2-SNAPSHOT-lite.jar`，约 183 KiB | 首次启动由服务器下载数据库驱动和连接池，缓存到服务端的 `libraries/`，以后复用 |
+| Full | `DeerTitle-1.0.2-SNAPSHOT-full.jar`，约 19.6 MiB | JAR 内附带上述依赖，适合无法下载依赖的服务器 |
 
 沿用 [Dominion](https://github.com/LunaDeerMC/Dominion) 的分发方式：Lite 通过 Paper 原生 `plugin.yml` 的 `libraries` 加载依赖，无需手动安装驱动。Lite 首次启动需要能访问 Maven 仓库；它减少的是插件下载包体积，运行功能和依赖需求不变。Full 的主要体积来自 SQLite 为各操作系统附带的原生库。
 
@@ -53,11 +53,11 @@ DeerTitle 使用独立数据库结构，可通过管理员命令从 MiniPlayerTi
 推送 `v主版本.次版本.修订号` tag 会触发 [Release 工作流](.github/workflows/release.yml)，运行测试、构建并发布 GitHub Release，附带 `DeerTitle-版本-full.jar`、`DeerTitle-版本-lite.jar` 和包含两者校验值的 `SHA256SUMS`。例如：
 
 ```bash
-git tag v1.0.1
-git push origin v1.0.1
+git tag v1.0.2
+git push origin v1.0.2
 ```
 
-`v1.1.0-rc.1` 这样的 tag 会发布为预发行版。插件版本和 JAR 文件名从 tag 生成；本地可用 `./gradlew -PreleaseVersion=1.0.1 clean build` 构建相同版本，未指定时仍为开发快照。普通提交不触发发布。每次正式发布使用新 tag。
+`v1.1.0-rc.1` 这样的 tag 会发布为预发行版。插件版本和 JAR 文件名从 tag 生成；本地可用 `./gradlew -PreleaseVersion=1.0.2 clean build` 构建相同版本，未指定时仍为开发快照。普通提交不触发发布。每次正式发布使用新 tag。
 
 ## 配置与跨服
 
@@ -79,6 +79,7 @@ cross-server:
 economy:
   mode: coins # coins / vault，全插件二选一
   currency-name: ''
+  initial-coins: 0 # 新账户的一次性称号币；沿用旧服首次赠送 100 的规则时设为 100
 custom-title:
   price-per-credit: '100'
   max-credits-per-purchase: 100
@@ -88,6 +89,7 @@ custom-title:
 - SQLite 用于单服；启用跨服却选择 SQLite 时拒绝启动。多个子服应连接**同一个 PostgreSQL / MySQL 数据库**，并保持经济模式、价格和展示配置一致。
 - 余额、背包、佩戴、次数、库存以数据库为准。所有写事务经过数据库互斥行，保护跨服库存与扣款不变量；事务内不调用 Vault 或网络服务。在线占位符缓存默认约 3 秒同步，购买和装备校验始终直接读数据库。
 - `coins` 为内置整数称号币。`vault` 需要用户另装 Vault 及适合对应 Paper/Folia 的经济插件；缺失时拒绝启动，不自动切换货币。Vault 金额最多两位小数。
+- `economy.initial-coins` 默认为 `0`，允许 `0–1000000000000` 的整数。仅在 coins 模式首次创建账户时发放一次，包括首次登录或管理员首次操作离线玩家；跨服同时创建也只发一次。修改配置或重复登录不补发已有账户，Vault 模式忽略此项且不操作外部经济。
 - Vault 余额是否跨服共享，取决于所选经济插件；共享 DeerTitle 数据库不能代替经济插件的数据同步。
 - `database.ssl: true` 对远端数据库执行证书及主机名验证。MySQL 关闭 TLS 时如需 RSA 公钥检索，须显式设置 `database.allow-public-key-retrieval: true`；默认关闭。
 - `display.time-zone` 控制 UI 销售时间输入与日期显示；`import.mini-player-title.source-time-zone` 单独解释旧数据日期。
@@ -137,6 +139,8 @@ custom-title:
 
 旧插件的外部 Vault 余额不会复制为称号币。旧内部余额带小数时默认拒绝；只有明确选择 `floor` 或 `round-half-up` 才转换，并给出警告。Vault 模式仍使用原经济提供者的余额。
 
+导入账户不叠加 `initial-coins`。先登录但尚未发生业务操作的账户，其初始化余额会由源余额替换；已经发生交易、管理调整或称号操作的账户保留现有数据，并沿用原余额合并规则。建议仍在开放玩家进入前完成迁移。1.0.2 修复了字面尖括号内 RGB 色码的转换，保留括号及文字颜色，不激活未知 MiniMessage 标签。
+
 旧数据库没有可靠的“自定义称号创建者”和“剩余自定义次数”字段，因此导入称号保留使用权，作为历史公共称号管理，不根据描述猜测编辑权限。尚未兑换的实体称号卡不在数据库中，不属于这次数据库导入。超过 100,000 行或 8,000,000 个文本字符的来源会停止预览，需分批迁移方案。
 
 ## Vault 付款
@@ -154,4 +158,4 @@ custom-title:
 ./gradlew build # 同时生成 Full / Lite
 ```
 
-测试涵盖真实 SQLite 事务、并发限量库存、余额回滚、付款状态与重复回调、旧库导入幂等、字符转换、编辑表单和在线缓存生命周期。PostgreSQL/MySQL 集成测试通过独立测试数据库运行，配置方法见 [验证记录](docs/VALIDATION.md)。本地测试世界、数据库凭证、下载文件和报告原件位于 Git 忽略的 `.local-test/`；发布资料只包含脱敏结论。
+测试涵盖真实 SQLite 事务、并发限量库存、余额回滚、付款状态与重复回调、旧库导入幂等、字符转换、编辑表单和在线缓存生命周期。PostgreSQL/MySQL 集成测试通过独立测试数据库运行，配置方法见 [验证记录](docs/VALIDATION.md)，初始币与迁移回归见 [1.0.2 验证](docs/INITIAL-COINS-VALIDATION.md)。本地测试世界、数据库凭证、下载文件和报告原件位于 Git 忽略的 `.local-test/` 或用户私有状态目录；发布资料只包含脱敏结论。

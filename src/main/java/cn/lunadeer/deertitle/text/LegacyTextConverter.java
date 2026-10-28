@@ -86,15 +86,8 @@ public final class LegacyTextConverter {
                 i += 7;
                 continue;
             }
-            // Unknown old tags remain text rather than gaining commands, fonts, selectors, or formatting.
-            if (ch == '<') {
-                int end = source.indexOf('>', i + 1);
-                if (end >= 0) {
-                    output.append(TitleText.literal(source.substring(i, end + 1)));
-                    i = end + 1;
-                    continue;
-                }
-            }
+            // Escape unknown tag delimiters, but keep processing legacy colors inside literal brackets.
+            // Escaping the whole <...> fragment would expose embedded RGB codes as visible text.
             if (ch == '\\' || ch == '<') output.append('\\');
             output.append(ch);
             i++;

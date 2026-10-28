@@ -28,15 +28,27 @@ public final class TitleStore implements AutoCloseable {
     private final DataSource source;
     private final SqlDialect dialect;
     private final Clock clock;
+    private final long initialCoins;
 
     public TitleStore(DataSource source, SqlDialect dialect) {
         this(source, dialect, Clock.systemUTC());
     }
 
     public TitleStore(DataSource source, SqlDialect dialect, Clock clock) {
+        this(source, dialect, clock, 0);
+    }
+
+    public TitleStore(DataSource source, SqlDialect dialect, long initialCoins) {
+        this(source, dialect, Clock.systemUTC(), initialCoins);
+    }
+
+    public TitleStore(DataSource source, SqlDialect dialect, Clock clock, long initialCoins) {
+        if (initialCoins < 0 || initialCoins > 1_000_000_000_000L)
+            throw new IllegalArgumentException("初始称号币必须为 0–1000000000000 的整数");
         this.source = Objects.requireNonNull(source);
         this.dialect = Objects.requireNonNull(dialect);
         this.clock = Objects.requireNonNull(clock);
+        this.initialCoins = initialCoins;
     }
 
     public void initialize() {
@@ -448,7 +460,8 @@ public final class TitleStore implements AutoCloseable {
                 if (mapped(c, batch.sourceKey(), "player", item.uuid().toString()).isPresent()) { skipped++; continue; }
                 Optional<PlayerProfile> existing = findPlayer(c, item.uuid());
                 if (existing.isEmpty()) {
-                    insertPlayer(c, item.uuid(), checkedName(item.name(), 64));
+                    // Imported players already have their source balance; never issue a signup grant.
+                    insertPlayer(c, item.uuid(), checkedName(item.name(), 64), 0);
                     initializeSelection.add(item.uuid());
                 } else if (existing.get().revision() == 0 && existing.get().equippedTitleId() == null) {
                     initializeSelection.add(item.uuid());
@@ -456,7 +469,11 @@ public final class TitleStore implements AutoCloseable {
                 if (item.coins() != null) {
                     if (item.coins() < 0) throw error(INVALID_INPUT);
                     long balance;
-                    try { balance = Math.addExact(player(c, item.uuid()).coins(), item.coins()); }
+                    // Revision zero means initialization/name updates only, with no business changes.
+                    // Replace an unused signup balance if the first login preceded the migration.
+                    long nativeBalance = existing.isPresent() && existing.get().revision() != 0
+                            ? player(c, item.uuid()).coins() : 0;
+                    try { balance = Math.addExact(nativeBalance, item.coins()); }
                     catch (ArithmeticException e) { throw error(INVALID_INPUT); }
                     execute(c, "UPDATE dt_player SET coins=?,revision=revision+1 WHERE uuid=?", balance, item.uuid().toString());
                 }
@@ -603,7 +620,11 @@ public final class TitleStore implements AutoCloseable {
     private PlayerProfile player(Connection c, UUID uuid) throws SQLException { return findPlayer(c, uuid).orElseThrow(() -> error(NOT_FOUND)); }
     private void ensurePlayer(Connection c, UUID uuid) throws SQLException { if (findPlayer(c, uuid).isEmpty()) insertPlayer(c, uuid, uuid.toString()); }
     private void insertPlayer(Connection c, UUID uuid, String name) throws SQLException {
-        execute(c, "INSERT INTO dt_player(uuid,name,equipped_title_id,coins,custom_credits,revision) VALUES (?,?,NULL,0,0,0)", uuid.toString(), name);
+        insertPlayer(c, uuid, name, initialCoins);
+    }
+
+    private void insertPlayer(Connection c, UUID uuid, String name, long startingCoins) throws SQLException {
+        execute(c, "INSERT INTO dt_player(uuid,name,equipped_title_id,coins,custom_credits,revision) VALUES (?,?,NULL,?,0,0)", uuid.toString(), name, startingCoins);
     }
 
     private Optional<Title> findTitle(Connection c, long id) throws SQLException { return one(c, "SELECT * FROM dt_title WHERE id=?", TitleStore::mapTitle, id); }
