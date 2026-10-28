@@ -1,6 +1,6 @@
 # 验证记录
 
-最新 RGB / HSV 颜色编辑功能的验证见 [颜色滑块验证记录](COLOR-SLIDERS-VALIDATION.md)。下文保留付款简化提交 `8b542f4` 的结果，对应下方列出的独立 JAR 哈希。
+最新分发方式与依赖生命周期验证见 [Full / Lite 验证记录](FULL-LITE-VALIDATION.md)，RGB / HSV 颜色编辑功能见 [颜色滑块验证记录](COLOR-SLIDERS-VALIDATION.md)。下文保留付款简化提交 `8b542f4` 的结果，对应下方列出的独立 JAR 哈希。
 
 日期：2026-10-28。本次针对 Vault 付款简化及自动维护进行回归，全部使用隔离的本地数据库、测试账户和新建世界。
 

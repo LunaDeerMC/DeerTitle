@@ -53,7 +53,7 @@ jobs:
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
-      - name: Run tests and build installation JAR
+      - name: Run tests and build Full and Lite JARs
         env:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: ./gradlew --no-daemon --stacktrace -PreleaseVersion="$RELEASE_VERSION" clean build
@@ -63,12 +63,14 @@ jobs:
           RELEASE_VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
-          jar="DeerTitle-${RELEASE_VERSION}.jar"
-          test -s "build/libs/$jar"
           mkdir -p dist
-          cp "build/libs/$jar" dist/
+          for edition in full lite; do
+            jar="DeerTitle-${RELEASE_VERSION}-${edition}.jar"
+            test -s "build/libs/$jar"
+            cp "build/libs/$jar" dist/
+          done
           cd dist
-          sha256sum "$jar" > SHA256SUMS
+          sha256sum "DeerTitle-${RELEASE_VERSION}-full.jar" "DeerTitle-${RELEASE_VERSION}-lite.jar" > SHA256SUMS
 
       - name: Upload release files
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -106,8 +108,16 @@ jobs:
           PRERELEASE: ${{ needs.build.outputs.prerelease }}
         shell: bash
         run: |
-          options=(--verify-tag --title "DeerTitle ${RELEASE_VERSION}" --generate-notes)
+          cat > "$RUNNER_TEMP/release-notes.md" <<'NOTES'
+          Full 和 Lite 功能相同，只选一个安装。
+
+          - **Lite（推荐）**：首次启动由 Paper/Folia 下载并缓存依赖，插件安装包更小；需要可用的 Maven 网络连接。
+          - **Full**：已包含数据库驱动和连接池，适合无法下载依赖的服务器。
+
+          升级或切换版本时关闭服务器、替换旧 JAR，保留配置与数据库。不要同时安装两个版本。
+          NOTES
+          options=(--verify-tag --title "DeerTitle ${RELEASE_VERSION}" --notes-file "$RUNNER_TEMP/release-notes.md" --generate-notes)
           if [[ "$PRERELEASE" == 'true' ]]; then
             options+=(--prerelease)
           fi
-          gh release create "$RELEASE_TAG" "dist/DeerTitle-${RELEASE_VERSION}.jar" dist/SHA256SUMS "${options[@]}"
+          gh release create "$RELEASE_TAG" "dist/DeerTitle-${RELEASE_VERSION}-full.jar" "dist/DeerTitle-${RELEASE_VERSION}-lite.jar" dist/SHA256SUMS "${options[@]}"

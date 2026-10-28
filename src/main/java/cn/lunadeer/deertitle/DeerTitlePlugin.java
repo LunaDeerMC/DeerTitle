@@ -66,6 +66,6 @@ public final class DeerTitlePlugin extends JavaPlugin {
             if (runtime != null) runtime.close();
             if (store != null) store.close();
             else if (pool != null) pool.close();
-        } finally { DriverCleanup.release(getClassLoader(), mysqlUsed); }
+        } finally { DriverCleanup.release(getClassLoader(), HikariDataSource.class.getClassLoader(), mysqlUsed); }
     }
 }

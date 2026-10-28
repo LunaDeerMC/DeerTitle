@@ -30,7 +30,16 @@ DeerTitle 使用独立数据库结构，可通过管理员命令从 MiniPlayerTi
 ./gradlew clean build
 ```
 
-需要 JDK 25。安装 `build/libs/DeerTitle-1.0.0-SNAPSHOT.jar`，不要安装 `-plain.jar`。SQLite、PostgreSQL、MySQL 驱动和连接池已包含在安装 JAR 中。
+需要 JDK 25。一次构建在 `build/libs/` 生成 Full 和 Lite 两个版本，**功能完全相同，只选一个安装**：
+
+| 版本 | 文件 | 依赖方式 |
+| --- | --- | --- |
+| Lite（推荐） | `DeerTitle-1.0.1-SNAPSHOT-lite.jar`，约 182 KiB | 首次启动由服务器下载数据库驱动和连接池，缓存到服务端的 `libraries/`，以后复用 |
+| Full | `DeerTitle-1.0.1-SNAPSHOT-full.jar`，约 19.6 MiB | JAR 内附带上述依赖，适合无法下载依赖的服务器 |
+
+沿用 [Dominion](https://github.com/LunaDeerMC/Dominion) 的分发方式：Lite 通过 Paper 原生 `plugin.yml` 的 `libraries` 加载依赖，无需手动安装驱动。Lite 首次启动需要能访问 Maven 仓库；它减少的是插件下载包体积，运行功能和依赖需求不变。Full 的主要体积来自 SQLite 为各操作系统附带的原生库。
+
+两个版本共用相同配置和数据库。切换时关闭服务器、替换原 JAR 后再启动，无需迁移数据；不要同时保留两个版本。
 
 1. 将 JAR 放入 `plugins/`，启动一次生成 `plugins/DeerTitle/config.yml`。
 2. 配置数据库、经济模式及文字长度限制，然后重启插件所在服务端。
@@ -41,14 +50,14 @@ DeerTitle 使用独立数据库结构，可通过管理员命令从 MiniPlayerTi
 
 ## 发布
 
-推送 `v主版本.次版本.修订号` tag 会触发 [Release 工作流](.github/workflows/release.yml)，运行测试、构建并发布 GitHub Release，附带 `DeerTitle-版本.jar` 和 `SHA256SUMS`。例如：
+推送 `v主版本.次版本.修订号` tag 会触发 [Release 工作流](.github/workflows/release.yml)，运行测试、构建并发布 GitHub Release，附带 `DeerTitle-版本-full.jar`、`DeerTitle-版本-lite.jar` 和包含两者校验值的 `SHA256SUMS`。例如：
 
 ```bash
 git tag v1.0.1
 git push origin v1.0.1
 ```
 
-`v1.1.0-rc.1` 这样的 tag 会发布为预发行版。插件版本和 JAR 文件名从 tag 生成；本地可用 `./gradlew -PreleaseVersion=1.0.0 clean build` 构建相同版本，未指定时仍为开发快照。普通提交不触发发布。每次正式发布使用新 tag。
+`v1.1.0-rc.1` 这样的 tag 会发布为预发行版。插件版本和 JAR 文件名从 tag 生成；本地可用 `./gradlew -PreleaseVersion=1.0.1 clean build` 构建相同版本，未指定时仍为开发快照。普通提交不触发发布。每次正式发布使用新 tag。
 
 ## 配置与跨服
 
@@ -142,7 +151,7 @@ custom-title:
 
 ```bash
 ./gradlew test
-./gradlew shadowJar
+./gradlew build # 同时生成 Full / Lite
 ```
 
 测试涵盖真实 SQLite 事务、并发限量库存、余额回滚、付款状态与重复回调、旧库导入幂等、字符转换、编辑表单和在线缓存生命周期。PostgreSQL/MySQL 集成测试通过独立测试数据库运行，配置方法见 [验证记录](docs/VALIDATION.md)。本地测试世界、数据库凭证、下载文件和报告原件位于 Git 忽略的 `.local-test/`；发布资料只包含脱敏结论。

@@ -4,7 +4,15 @@ plugins {
 }
 
 group = "cn.lunadeer"
-version = providers.gradleProperty("releaseVersion").orElse("1.0.0-SNAPSHOT").get()
+version = providers.gradleProperty("releaseVersion").orElse("1.0.1-SNAPSHOT").get()
+
+// Full bundles these libraries; Lite delegates resolution and caching to Paper/Folia.
+val pluginLibraries = listOf(
+    "com.zaxxer:HikariCP:6.3.0",
+    "org.xerial:sqlite-jdbc:3.49.1.0",
+    "org.postgresql:postgresql:42.7.7",
+    "com.mysql:mysql-connector-j:9.3.0"
+)
 
 repositories {
     mavenCentral()
@@ -22,10 +30,7 @@ dependencies {
     compileOnly("com.github.MilkBowl:VaultAPI:1.7") { isTransitive = false }
     compileOnly("maven.modrinth:placeholderapi:2.12.3")
 
-    implementation("com.zaxxer:HikariCP:6.3.0")
-    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
-    implementation("org.postgresql:postgresql:42.7.7")
-    implementation("com.mysql:mysql-connector-j:9.3.0")
+    pluginLibraries.forEach { implementation(it) }
 
     testImplementation("org.junit.jupiter:junit-jupiter:5.11.4")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
@@ -41,7 +46,10 @@ tasks.withType<JavaCompile>().configureEach {
 
 tasks.processResources {
     inputs.property("version", project.version)
-    filesMatching("plugin.yml") { expand("version" to project.version) }
+    inputs.property("libraries", pluginLibraries)
+    filesMatching("plugin.yml") {
+        expand("version" to project.version, "libraries" to pluginLibraries.joinToString(", ", "[", "]") { "'$it'" })
+    }
 }
 
 tasks.test {
@@ -51,13 +59,16 @@ tasks.test {
 }
 
 tasks.shadowJar {
-    archiveClassifier.set("")
+    archiveClassifier.set("full")
+    filesMatching("plugin.yml") {
+        filter { line: String -> if (line.startsWith("libraries:")) "libraries: []" else line }
+    }
     mergeServiceFiles()
     relocate("com.zaxxer.hikari", "cn.lunadeer.deertitle.internal.hikari")
     exclude("META-INF/*.SF", "META-INF/*.DSA", "META-INF/*.RSA")
 }
 
-tasks.jar { archiveClassifier.set("plain") }
+tasks.jar { archiveClassifier.set("lite") }
 tasks.build { dependsOn(tasks.shadowJar) }
 
 tasks.wrapper {

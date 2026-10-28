@@ -3,6 +3,7 @@ version: '${version}'
 main: cn.lunadeer.deertitle.DeerTitlePlugin
 api-version: '26.1'
 folia-supported: true
+libraries: ${libraries}
 description: 跨服称号、可视化编辑器和称号商店
 author: LunaDeer
 website: https://github.com/LunaDeerMC/DeerTitle
