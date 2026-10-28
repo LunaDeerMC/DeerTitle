@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "cn.lunadeer"
-version = "1.0.0-SNAPSHOT"
+version = providers.gradleProperty("releaseVersion").orElse("1.0.0-SNAPSHOT").get()
 
 repositories {
     mavenCentral()

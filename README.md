@@ -39,6 +39,17 @@ DeerTitle 使用独立数据库结构，可通过管理员命令从 MiniPlayerTi
 
 采用最早公开的 Paper 26.x API 编译，`api-version: '26.1'`，不使用 NMS、反射版本适配或 Bukkit Inventory GUI。当前验证范围见 [验证记录](docs/VALIDATION.md)。对于尚未发布的未来版本，以 Paper 公共 API 保持兼容为前提，不能预先证明未知版本的运行结果。Spigot、CraftBukkit 和 Minecraft 1.21.x 不在支持范围。
 
+## 发布
+
+推送 `v主版本.次版本.修订号` tag 会触发 [Release 工作流](.github/workflows/release.yml)，运行测试、构建并发布 GitHub Release，附带 `DeerTitle-版本.jar` 和 `SHA256SUMS`。例如：
+
+```bash
+git tag v1.0.1
+git push origin v1.0.1
+```
+
+`v1.1.0-rc.1` 这样的 tag 会发布为预发行版。插件版本和 JAR 文件名从 tag 生成；本地可用 `./gradlew -PreleaseVersion=1.0.0 clean build` 构建相同版本，未指定时仍为开发快照。普通提交不触发发布。每次正式发布使用新 tag。
+
 ## 配置与跨服
 
 字段统一使用 `kebab-case`，完整默认值见 [config.yml](src/main/resources/config.yml)。
